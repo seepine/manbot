@@ -4,6 +4,7 @@ import type { HeadersInit } from 'bun'
 import { join } from 'node:path'
 import MCP_SCHEMA from './assets/mcp.schema.json.txt' with { type: 'txt', embed: 'true' }
 import MCP_CONFIG from './assets/mcp.json.txt' with { type: 'txt', embed: 'true' }
+import { httpProxyEnv } from './utils/env'
 
 export type McpTransport =
   | {
@@ -97,7 +98,13 @@ export const loadMcpTools = async (workspace: string): Promise<McpToolsResult> =
         )
         continue
       }
-      mcpServers[name] = server
+      mcpServers[name] = {
+        ...server,
+        env: {
+          ...httpProxyEnv,
+          ...server.env,
+        },
+      }
     } else {
       console.warn(`[MCP] ${name} 的配置格式不正确，跳过该 MCP 服务`)
     }

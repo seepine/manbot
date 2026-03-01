@@ -1,6 +1,7 @@
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import { MultiServerMCPClient, type ClientConfig } from '@langchain/mcp-adapters'
 import { join } from 'node:path'
+import { httpProxyEnv } from '../utils/env'
 
 type McpServerConfig = ClientConfig['mcpServers']
 
@@ -29,6 +30,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
       command: 'bunx',
       args: ['-y', '--bun', '@seepine/mcp-terminal'],
       env: {
+        ...httpProxyEnv,
         DEFAULT_CWD: workspaceFolder,
       },
     }
@@ -37,6 +39,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@calibress/curl-mcp'],
+      env: httpProxyEnv,
     }
   }
 
