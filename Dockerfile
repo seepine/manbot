@@ -20,7 +20,8 @@ RUN apk add --no-cache bash curl
 RUN adduser manbot -D -u 1200 -h /data
 USER manbot
 WORKDIR /data
-ENV WORKSPACE_FOLDER=/data/workspace
+ENV WORKSPACE_FOLDER=/data/workspace \
+    TERMINAL_ALLOWED=true
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000
 ENTRYPOINT ["/bin/bash", "-c", "crond && bun /manbot.js"]

@@ -12,13 +12,12 @@ services:
       - FEISHU_APP_ID=cli_xxxxxx
       - FEISHU_APP_SECRET=xxxxxx
 
-      # 是否启用终端，默认false，启用后可以直接执行命令，请自行判断是否开启
-      - TERMINAL_ENABLED=true
       # Tavily API Key，用于 Tavily 搜索服务
       - TAVILY_API_KEY=tvly-xxxxxx
 
       # 更多配置查看 .env.example
     volumes:
       # manbot_data 替换成你的数据目录
-      # npm 国内源手动创建 ./manbot_data/.bunfig.toml 文件进行配置
+      # --- 由于非root用户，需要手动创建目录并设置权限例如 chmod 777 -R ./manbot_data
+      # --- npm 国内源创建 ./manbot_data/.bunfig.toml 文件进行配置
       - ./manbot_data:/data
