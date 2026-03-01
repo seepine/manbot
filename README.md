@@ -38,6 +38,31 @@ docker-compose up -d
 
 服务启动后，Manbot 将在后台运行并监听飞书消息。
 
+## npm 国内源
+
+鉴于 npm 源在国内访问速度较慢，建议配置国内源。
+
+### 1. docker
+
+在数据目录下创建 `.bunfig.toml` 文件，配置国内源。
+
+```toml
+[install]
+registry = "https://registry.npmmirror.com"
+```
+
+### 2. MacOS/Windows/Linux
+
+- Unix系统可执行 `echo $HOME` 查看用户目录
+- Windows 系统下用户目录为 `C:\Users\用户名`
+
+在用户目录下创建 `.bunfig.toml` 文件，配置国内源。
+
+```toml
+[install]
+registry = "https://registry.npmmirror.com"
+```
+
 ## 环境变量配置
 
 > 若以二进制文件运行，在二进制同目录下创建 `.env` 文件，配置环境变量。
@@ -83,7 +108,6 @@ Manbot 支持通过飞书（Lark）聊天与用户交互。在配置环境变量
       "command": "bunx",
       "args": ["-y", "@seepine/mcp-terminal"],
       "env": {
-        // 直接使用 ${workspaceFolder} 作为参数
         "DEFAULT_CWD": "${workspaceFolder}"
       }
     }

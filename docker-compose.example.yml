@@ -19,5 +19,6 @@ services:
 
       # 更多配置查看 .env.example
     volumes:
-      # 替换成你的工作目录
-      - ./my_workspace:/workspace
+      # manbot_data 替换成你的数据目录
+      # npm 国内源手动创建 ./manbot_data/.bunfig.toml 文件进行配置
+      - ./manbot_data:/data

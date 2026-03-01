@@ -16,10 +16,11 @@ RUN echo "ntpd -d -q -n -p \$NTP_SERVER" > /usr/local/bin/ntp.sh \
   && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
   && echo "Asia/Shanghai" > /etc/timezone \
   && apk del tzdata
-RUN apk add --no-cache bash
-
-WORKDIR /workspace
-ENV WORKSPACE_FOLDER=/workspace
+RUN apk add --no-cache bash curl
+RUN adduser manbot -D -u 1200 -h /data
+USER manbot
+WORKDIR /data
+ENV WORKSPACE_FOLDER=/data/workspace
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000
 ENTRYPOINT ["/bin/bash", "-c", "crond && bun /manbot.js"]

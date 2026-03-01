@@ -19,15 +19,27 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
         MEMORY_FILE_PATH: join(workspaceFolder, '.data', 'memory-data.jsonl'),
       },
     },
-    curl: {
+  }
+  const { env } = process
+
+  // 动态添加其他mcp服务
+  if (env.TERMINAL_ALLOWED === 'true') {
+    mcpServers['terminal'] = {
+      type: 'stdio',
+      command: 'bunx',
+      args: ['-y', '--bun', '@seepine/mcp-terminal'],
+      env: {
+        DEFAULT_CWD: workspaceFolder,
+      },
+    }
+  } else {
+    mcpServers['curl'] = {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@calibress/curl-mcp'],
-    },
+    }
   }
 
-  const { env } = process
-  // 动态添加其他mcp服务
   if (env.TAVILY_API_KEY) {
     const apis = env.TAVILY_API_KEY.split(',')
     apis
@@ -40,24 +52,20 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
         }
       })
   }
-  if (env.TERMINAL_ALLOWED === 'true') {
-    mcpServers['terminal'] = {
-      type: 'stdio',
-      command: 'bunx',
-      args: ['-y', '--bun', '@seepine/mcp-terminal'],
-      env: {
-        DEFAULT_CWD: workspaceFolder,
-      },
-    }
-  }
 
   const client = new MultiServerMCPClient({
-    throwOnLoadError: false,
+    throwOnLoadError: true,
     prefixToolNameWithServerName: true,
     useStandardContentBlocks: true,
-    onConnectionError: 'ignore',
+    onConnectionError: 'throw',
     mcpServers,
   })
   const tools = await client.getTools()
+
+  console.log(`[内置MCP] 已加载 ${tools.length} 个工具`)
+  for (const tool of tools) {
+    console.log(`  - ${tool.name}: ${tool.description?.slice(0, 60) ?? '(无描述)'}`)
+  }
+
   return { tools: tools as StructuredToolInterface[], client }
 }

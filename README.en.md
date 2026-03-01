@@ -83,7 +83,6 @@ For example, the following configuration:
       "command": "bunx",
       "args": ["-y", "@seepine/mcp-terminal"],
       "env": {
-        // Directly use ${workspaceFolder} as a parameter
         "DEFAULT_CWD": "${workspaceFolder}"
       }
     }
