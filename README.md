@@ -40,28 +40,7 @@ docker-compose up -d
 
 ## npm 国内源
 
-鉴于 npm 源在国内访问速度较慢，建议配置国内源。
-
-### 1. docker
-
-在数据目录下创建 `.bunfig.toml` 文件，配置国内源。
-
-```toml
-[install]
-registry = "https://registry.npmmirror.com"
-```
-
-### 2. MacOS/Windows/Linux
-
-- Unix系统可执行 `echo $HOME` 查看用户目录
-- Windows 系统下用户目录为 `C:\Users\用户名`
-
-在用户目录下创建 `.bunfig.toml` 文件，配置国内源。
-
-```toml
-[install]
-registry = "https://registry.npmmirror.com"
-```
+bunx/uv 的国内源配置请查看 [registry.md](./docs/registry.md)
 
 ## 环境变量配置
 
