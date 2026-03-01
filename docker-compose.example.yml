@@ -1,0 +1,23 @@
+services:
+  manbot:
+    # 或者 ghcr.io/seepine/manbot:latest
+    image: seepine/manbot:latest
+    container_name: manbot
+    environment:
+      # 任何支持openai api的模型商
+      - OPENAI_API_KEY=sk-xxxxxx
+      - OPENAI_BASE_URL=https://api.openai.com/v1
+      - OPENAI_MODEL=gpt-4o
+      # 飞书配置
+      - FEISHU_APP_ID=cli_xxxxxx
+      - FEISHU_APP_SECRET=xxxxxx
+
+      # 是否启用终端，默认false，启用后可以直接执行命令，请自行判断是否开启
+      - TERMINAL_ENABLED=true
+      # Tavily API Key，用于 Tavily 搜索服务
+      - TAVILY_API_KEY=tvly-xxxxxx
+
+      # 更多配置查看 .env.example
+    volumes:
+      # 替换成你的工作目录
+      - ./my_workspace:/workspace

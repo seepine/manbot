@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "bun-dev",
+      "type": "bun",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*",
+          "endsPattern": "https://debug.bun.sh/#localhost"
+        }
+      }
+    },
+    {
+      "label": "bun-dev-stop",
+      "type": "shell",
+      "command": "bun .vscode/task-stop.ts",
+      "isBackground": false,
+      "problemMatcher": []
+    }
+  ]
+}

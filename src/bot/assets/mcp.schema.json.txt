@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCP Servers Configuration",
+  "description": "配置 MCP 服务器连接，支持 stdio、sse 和 http（streamableHTTP） 三种传输类型",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 引用"
+    },
+    "mcpServers": {
+      "type": "object",
+      "description": "MCP 服务器配置映射，键为服务器名称",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "stdio 类型：通过子进程启动 MCP 服务",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "stdio",
+                "default": "stdio",
+                "description": "传输类型（可省略，默认 stdio）"
+              },
+              "command": {
+                "type": "string",
+                "description": "启动命令，如 bunx、npx、uvx、docker 等",
+                "examples": [
+                  "bunx",
+                  "npx",
+                  "uvx",
+                  "docker"
+                ]
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "命令参数列表"
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "环境变量"
+              },
+              "cwd": {
+                "type": "string",
+                "description": "工作目录"
+              }
+            },
+            "required": [
+              "command",
+              "args"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "sse 类型（已弃用，推荐使用 streamableHTTP）",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "sse",
+                "description": "传输类型"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "SSE 端点 URL"
+              }
+            },
+            "required": [
+              "type",
+              "url"
+            ],
+            "additionalProperties": false,
+            "deprecated": true
+          },
+          {
+            "type": "object",
+            "description": "streamableHTTP 类型：通过 HTTP 连接远程 MCP 服务",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "http",
+                "description": "传输类型"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "HTTP 端点 URL"
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "自定义请求头，如 Authorization"
+              }
+            },
+            "required": [
+              "type",
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "mcpServers"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+# 本文件用于本地开发使用，生产环境请使用 docker-compose.example.yml
+
+services:
+  manbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    image: manbot:latest
+    volumes:
+      - ./workspace:/workspace

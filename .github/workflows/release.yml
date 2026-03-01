@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release-docker:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DOCKER_REGISTRY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Docker
+        uses: seepine/action-setup-docker@v1
+        id: meta
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Success
+        run: echo "Release ${{ steps.meta.outputs.tags }} success"
+
+  release-ghcr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Docker
+        uses: seepine/action-setup-docker@v1
+        id: meta
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Success
+        run: echo "Release ${{ steps.meta.outputs.tags }} success"
+
+  release-binaries:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        target:
+          - bun-linux-x64
+          - bun-linux-arm64
+          - bun-windows-x64
+          - bun-darwin-x64
+          - bun-darwin-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build binary
+        run: bun run build --target=${{ matrix.target }}
+
+      - name: Make binary executable
+        if: matrix.target != 'bun-windows-x64'
+        run: chmod +x dist/manbot-*
+
+      - name: Release binary
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/manbot-*
