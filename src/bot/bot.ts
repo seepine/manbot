@@ -15,6 +15,9 @@ const {
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MODEL,
+  OPENAI_TIMEOUT = '120000',
+  OPENAI_TEMPERATURE = '0.7',
+  OPENAI_TOP_P = '0.9',
   RECURSION_LIMIT = '100',
   MAX_MESSAGES = '50',
 } = process.env
@@ -70,6 +73,9 @@ export const buildAgent = async (
     configuration: { baseURL: OPENAI_BASE_URL },
     modelName: OPENAI_MODEL,
     streaming: true,
+    temperature: Number(OPENAI_TEMPERATURE),
+    topP: Number(OPENAI_TOP_P),
+    timeout: Number(OPENAI_TIMEOUT),
   })
 
   const tools = [...systemInnerTools, ...innerMcpTools?.tools, ...(mcpTools?.tools || [])]
