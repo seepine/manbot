@@ -1,0 +1,13 @@
+# 如何添加或删除 Mcp
+
+所有的mcp都保存在 `mcp.json` 文件中，当用户提出添加或删除mcp时，请修改 `mcp.json` 文件，并确保修改的内容格式符合 `mcp.schema.json` 说明的规范
+
+请注意
+
+- 若添加mcp类型为stdio并且command为npx，请改为使用bunx
+- 涉及到目录相关的请使用 `${workspaceFolder}` 代替
+  ```json
+  "env": {
+    "DEFAULT_CWD": "${workspaceFolder}/custom_dir"
+  }
+  ```

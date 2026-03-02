@@ -10,6 +10,7 @@ import { createTaskTool, startTasksProcess } from './task-manager.ts'
 import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
+import { readHistoryMessages, saveHistoryMessages } from './utils/history.ts'
 
 const {
   WORKSPACE_FOLDER = './workspace',
@@ -20,7 +21,6 @@ const {
   OPENAI_TEMPERATURE = '0.7',
   OPENAI_TOP_P = '0.9',
   RECURSION_LIMIT = '100',
-  MAX_MESSAGES = '50',
 } = process.env
 
 if (!OPENAI_API_KEY || !OPENAI_BASE_URL || !OPENAI_MODEL) {
@@ -36,7 +36,6 @@ if (!existsSync(workspaceDir)) {
 }
 
 const recursionLimit = parseInt(RECURSION_LIMIT, 10)
-const maxMessages = parseInt(MAX_MESSAGES, 10)
 
 let mcpTools: McpToolsResult | null = null
 let innerMcpTools: McpToolsResult | null = null
@@ -97,10 +96,6 @@ export const buildAgent = async (
   return createAgent({ model: llm, tools, systemPrompt })
 }
 
-const chatMessageHistory: {
-  [chatId: string]: BaseMessageLike[]
-} = {}
-
 export const handlerMessage = async (
   type: 'feishu',
   chatId: string,
@@ -108,8 +103,10 @@ export const handlerMessage = async (
   senderUnionId: string,
   reply: (replyContent: string, isEnd?: boolean) => void | Promise<void>,
 ) => {
-  const agent = await buildAgent({ additionalTools: createTaskTool(type, chatId, senderUnionId) })
-  const history = chatMessageHistory[chatId] || []
+  const agent = await buildAgent({
+    additionalTools: [...createTaskTool(type, chatId, senderUnionId)],
+  })
+  const history = await readHistoryMessages(workspaceDir, chatId)
   try {
     const stream = agent.streamEvents(
       { messages: [...history, { role: 'user', content }] },
@@ -131,12 +128,10 @@ export const handlerMessage = async (
       }
     }
     if (fullContent) {
-      history.push({ role: 'user', content })
-      history.push({ role: 'assistant', content: fullContent })
-      while (history.length > maxMessages) {
-        history.shift()
-      }
-      chatMessageHistory[chatId] = history
+      await saveHistoryMessages(workspaceDir, chatId, [
+        { role: 'user', content },
+        { role: 'assistant', content: fullContent },
+      ])
     }
   } catch (err) {
     await reply('\n[错误]' + (err instanceof Error ? err.message : err))

@@ -1,0 +1,27 @@
+# 如何创建 Skill
+
+所有的 skills 保存在 `.agents/skills` 目录中，当用户提出添加或删除 skill 时，请在 `.agents/skills` 目录中操作，并确保符合 skills 规范
+
+## 目录结构
+
+```ini
+.agents
+  - skills
+    - [skill_name_1]     # 技能1
+      - SKILL.md         # 技能1入口
+      - ...              # 技能1其他文件
+    - [skill_name_2]     # 技能2
+      - SKILL.md         # 技能2入口
+      - ...              # 技能2其他文件
+```
+
+## SKILL.md 规范
+
+```md
+---
+name: {技能名称}
+description: {技能描述}
+---
+
+{技能具体内容}
+```

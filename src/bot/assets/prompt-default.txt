@@ -4,47 +4,15 @@
 
 ### mcp
 
-所有的mcp都保存在 `mcp.json` 文件中，当用户提出添加或删除mcp时，请修改 `mcp.json` 文件，并确保修改的内容格式符合 `.vscode/mcp.schema.json` 说明的规范
-
-请注意
-- 其中 `filesystem` 和 `memory` 这两个 mcp 是系统内置，不会在 `mcp.json` 文件中，请直接使用
-- 若添加mcp类型为stdio并且command为npx，请改为使用bunx
-- 涉及到目录相关的请使用 `${workspaceFolder}` 代替
-  ```json
-  "env": {
-    "DEFAULT_CWD": "${workspaceFolder}/custom_dir"
-  }
-  ```
+所有的mcp都保存在 `mcp.json` 文件中
 
 ### skills
 
-所有的 skills 保存在 `.agents/skills` 目录中，当用户提出添加或删除 skill 时，请在 `.agents/skills` 目录中操作，并确保符合 skills 规范，目录结构如下
+所有的 skills 保存在 `.agents/skills` 目录中
 
-```ini
-.agents
-  - skills
-    - [skill_name_1]     # 技能1
-      - SKILL.md         # 技能1入口
-      - ...              # 技能1其他文件
-    - [skill_name_2]     # 技能2
-      - SKILL.md         # 技能2入口
-      - ...              # 技能2其他文件
-```
+## 重要记忆
 
-且每个 skill 的 SKILL.md 文件必须符合规范
-
-```md
----
-name: [技能名称]
-description: [技能描述]
----
-
-...[技能具体内容]
-```
-
-## 记忆
-
-基于 `memory` mcp
+基于 `memory` tools
 
 - 每次开头都先使用 `memory` 读取记忆，`name` 为 `user_record` 以确保更好的回答用户问题，清注意：读取记忆的行为不需要告诉用户
 - 对于用户提出的关键信息、或个人习惯、或有关个人的习惯或倾向等个人画像，请使用 `memory` 这个mcp及时保存，`name` 为 `user_record`
