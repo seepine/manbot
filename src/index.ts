@@ -1,5 +1,4 @@
 import { Elysia } from 'elysia'
-import { join } from 'node:path'
 import { createFeishu } from './channels/feishu.ts'
 import { buildAgent, handlerMessage } from './bot/bot.ts'
 
@@ -14,13 +13,7 @@ const app = new Elysia()
           appSecret: FEISHU_APP_SECRET,
         },
         async (data, reply) => {
-          handlerMessage(
-            'feishu',
-            data.message.chat_id,
-            data.message.content,
-            data.sender.sender_id?.union_id || '',
-            reply,
-          )
+          handlerMessage('feishu', data.chatId, data.content, data.senderUnionId, reply)
         },
       )
     } else {

@@ -52,7 +52,11 @@ type FeishuMessageData = {
 }
 
 export type Callback = (
-  data: FeishuMessageData,
+  data: {
+    chatId: string
+    content: string
+    senderUnionId: string
+  },
   reply: (replyContent: string, isEnd?: boolean) => void | Promise<void>,
 ) => Promise<void> | void
 
@@ -174,31 +178,38 @@ const handleMessage = async (data: FeishuMessageData, callback: Callback) => {
   let sequence = 0
   let allReplyContent = ''
 
-  await callback(data, async (replyContent, isEnd = false) => {
-    if (!cardId) {
-      cardId = await genCardMessage(client, chat_id, question, senderUnionId)
-      if (!cardId) return
-    }
+  await callback(
+    {
+      chatId: chat_id,
+      content: question,
+      senderUnionId: senderUnionId || '',
+    },
+    async (replyContent, isEnd = false) => {
+      if (!cardId) {
+        cardId = await genCardMessage(client, chat_id, question, senderUnionId)
+        if (!cardId) return
+      }
 
-    try {
-      if (replyContent) {
-        allReplyContent += replyContent
-        await client.cardkit.v1.cardElement.content({
-          path: { card_id: cardId, element_id: 'markdown_1' },
-          data: { content: allReplyContent, sequence: sequence++ },
-        })
+      try {
+        if (replyContent) {
+          allReplyContent += replyContent
+          await client.cardkit.v1.cardElement.content({
+            path: { card_id: cardId, element_id: 'markdown_1' },
+            data: { content: allReplyContent, sequence: sequence++ },
+          })
+        }
+        if (isEnd) {
+          await client.cardkit.v1.cardElement.delete({
+            path: { card_id: cardId, element_id: 'tips' },
+            data: { sequence: sequence++ },
+          })
+          cardId = undefined
+        }
+      } catch (e) {
+        console.error(e)
       }
-      if (isEnd) {
-        await client.cardkit.v1.cardElement.delete({
-          path: { card_id: cardId, element_id: 'tips' },
-          data: { sequence: sequence++ },
-        })
-        cardId = undefined
-      }
-    } catch (e) {
-      console.error(e)
-    }
-  })
+    },
+  )
 }
 
 export const createFeishu = async (config: FeishuConfig, callback: Callback) => {
