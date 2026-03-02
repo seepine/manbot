@@ -9,6 +9,7 @@ import type { BaseMessageLike } from '@langchain/core/messages'
 import { createTaskTool, startTasksProcess } from './task-manager.ts'
 import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
+import { createDownloadTools } from './tools/download.ts'
 
 const {
   WORKSPACE_FOLDER = './workspace',
@@ -78,7 +79,12 @@ export const buildAgent = async (
     timeout: Number(OPENAI_TIMEOUT),
   })
 
-  const tools = [...systemInnerTools, ...innerMcpTools?.tools, ...(mcpTools?.tools || [])]
+  const tools = [
+    ...systemInnerTools,
+    ...createDownloadTools(workspaceDir),
+    ...innerMcpTools?.tools,
+    ...(mcpTools?.tools || []),
+  ]
 
   if (opts.additionalTools) {
     tools.push(...opts.additionalTools)
