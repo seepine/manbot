@@ -1,27 +1,26 @@
-FROM oven/bun:alpine AS build
+FROM oven/bun:1.3-debian AS build
 WORKDIR /work
 COPY package.json bun.lock bunfig.toml tsconfig.json ./
 RUN bun install
 COPY ./src ./src
 RUN bun run build -j
 
-FROM oven/bun:alpine
-RUN apk add --no-cache libstdc++
-ENV NTP_SERVER=pool.ntp.org \
-  TZ=Asia/Shanghai
-RUN echo "ntpd -d -q -n -p \$NTP_SERVER" > /usr/local/bin/ntp.sh \
-  && chmod +x /usr/local/bin/ntp.sh \
-  && echo "*/30 * * * * ntp.sh" >> /etc/crontabs/root \
-  && apk add --no-cache tzdata \
-  && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-  && echo "Asia/Shanghai" > /etc/timezone \
-  && apk del tzdata
-RUN apk add --no-cache bash curl uv git
-RUN adduser manbot -D -u 1200 -h /data
+FROM oven/bun:1.3-debian
+ENV TZ=Asia/Shanghai
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Create user
+RUN useradd -u 1200 -m -d /data -s /bin/bash manbot
 USER manbot
+
 WORKDIR /data
 ENV WORKSPACE_FOLDER=/data/workspace \
     TERMINAL_ALLOWED=true
+
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000
-ENTRYPOINT ["/bin/bash", "-c", "crond && bun /manbot.js"]
+ENTRYPOINT ["/bin/bash", "-c", "bun /manbot.js"]
