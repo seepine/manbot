@@ -139,7 +139,6 @@ export const handleDownload = async (
     })
     .then(async (resp) => {
       await mkdir(dirPath, { recursive: true })
-      console.log('下载路径', filePath)
       const file = Bun.file(filePath)
       if (await file.exists()) {
         await file.delete()
