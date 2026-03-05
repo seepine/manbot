@@ -129,9 +129,9 @@ export const handlerMessage = async (
         }
       } else if (event.event === 'on_tool_start') {
         await reply(`\n> [调用工具: ${event.name}]\n`)
-        await reply(`> ${JSON.stringify(event.data.input ?? event.data ?? {})}\n`)
+        await reply(`> ${JSON.stringify(event.data.input ?? event.data ?? {})}\n\n`)
       } else if (event.event === 'on_tool_end') {
-        await reply(`\n> [工具 ${event.name} 返回完毕]\n`)
+        await reply(`\n> [工具 ${event.name} 返回完毕]\n\n`)
       }
     }
     if (fullContent) {
