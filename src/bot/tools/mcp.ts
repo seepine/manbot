@@ -5,17 +5,25 @@ import { httpProxyEnv } from '../utils/env'
 
 type McpServerConfig = ClientConfig['mcpServers']
 
+const defaultRestart = {
+  enabled: true,
+  maxAttempts: 10,
+  delayMs: 2000,
+}
+
 export const createInnerMcpTools = async (workspaceFolder: string) => {
   const mcpServers: McpServerConfig = {
     filesystem: {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@modelcontextprotocol/server-filesystem', workspaceFolder],
+      restart: defaultRestart,
     },
     memory: {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@modelcontextprotocol/server-memory'],
+      restart: defaultRestart,
       env: {
         MEMORY_FILE_PATH: join(workspaceFolder, '.data', 'memory-data.jsonl'),
       },
@@ -29,6 +37,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@seepine/mcp-terminal'],
+      restart: defaultRestart,
       env: {
         ...httpProxyEnv,
         DEFAULT_CWD: workspaceFolder,
@@ -39,6 +48,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
       type: 'stdio',
       command: 'bunx',
       args: ['-y', '--bun', '@calibress/curl-mcp'],
+      restart: defaultRestart,
       env: httpProxyEnv,
     }
   }
@@ -52,6 +62,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
           type: 'stdio',
           command: `bunx`,
           args: ['-y', '--bun', 'mcp-remote', `https://mcp.tavily.com/mcp/?tavilyApiKey=${api}`],
+          restart: defaultRestart,
         }
       })
   }

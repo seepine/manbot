@@ -37,12 +37,51 @@ if (!existsSync(workspaceDir)) {
   mkdirSync(workspaceDir, { recursive: true })
 }
 
-const recursionLimit = parseInt(RECURSION_LIMIT, 10)
+const parseInteger = (raw: string, fallback: number): number => {
+  const value = Number.parseInt(raw, 10)
+  return Number.isNaN(value) ? fallback : value
+}
+
+const parseDecimal = (raw: string, fallback: number): number => {
+  const value = Number(raw)
+  return Number.isNaN(value) ? fallback : value
+}
+
+const recursionLimit = parseInteger(RECURSION_LIMIT, 100)
+const openaiTimeout = parseInteger(OPENAI_TIMEOUT, 120000)
+const openaiTemperature = parseDecimal(OPENAI_TEMPERATURE, 0.7)
+const openaiTopP = parseDecimal(OPENAI_TOP_P, 0.9)
 
 let mcpTools: McpToolsResult | null = null
 let innerMcpTools: McpToolsResult | null = null
-const toolRegistry = new ToolRegistry()
 const toolDiscoveryEnabled = AUTO_TOOL_DISCOVERY === 'true'
+
+const ensureMcpToolsLoaded = async (): Promise<void> => {
+  if (await mcpToolsHasChanged(workspaceDir)) {
+    await mcpTools?.client?.close().catch(() => {})
+    mcpTools = await loadMcpTools(workspaceDir)
+  }
+}
+
+const createModel = () => {
+  return new ChatOpenAICompletions({
+    apiKey: OPENAI_API_KEY,
+    configuration: { baseURL: OPENAI_BASE_URL },
+    modelName: OPENAI_MODEL,
+    streaming: true,
+    temperature: openaiTemperature,
+    topP: openaiTopP,
+    timeout: openaiTimeout,
+  })
+}
+
+const stringifyToolInput = (value: unknown): string => {
+  try {
+    return JSON.stringify(value ?? {})
+  } catch {
+    return String(value ?? '{}')
+  }
+}
 
 export const buildAgent = async (
   opts: {
@@ -62,10 +101,7 @@ export const buildAgent = async (
     innerMcpTools = await createInnerMcpTools(workspaceDir)
   }
 
-  if (await mcpToolsHasChanged(workspaceDir)) {
-    await mcpTools?.client?.close().catch(() => {})
-    mcpTools = await loadMcpTools(workspaceDir)
-  }
+  await ensureMcpToolsLoaded()
 
   const [skills, prompt] = await Promise.all([
     loadSkills(workspaceDir),
@@ -73,20 +109,13 @@ export const buildAgent = async (
   ])
   let systemPrompt = `${prompt}\n${buildSkillsPrompt(skills)}`
 
-  const llm = new ChatOpenAICompletions({
-    apiKey: OPENAI_API_KEY,
-    configuration: { baseURL: OPENAI_BASE_URL },
-    modelName: OPENAI_MODEL,
-    streaming: true,
-    temperature: Number(OPENAI_TEMPERATURE),
-    topP: Number(OPENAI_TOP_P),
-    timeout: Number(OPENAI_TIMEOUT),
-  })
+  const llm = createModel()
 
   const tools = [...systemInnerTools, ...createDownloadTools(workspaceDir), ...innerMcpTools?.tools]
 
   if (toolDiscoveryEnabled && mcpTools?.tools?.length) {
     // 工具自动发现模式：用户 MCP 工具通过注册表按需发现
+    const toolRegistry = new ToolRegistry()
     toolRegistry.register(mcpTools.tools)
     tools.push(...toolRegistry.createProxyTools())
     systemPrompt += `\n${toolRegistry.getToolsPrompt()}`
@@ -130,7 +159,7 @@ export const handlerMessage = async (
         }
       } else if (event.event === 'on_tool_start') {
         await reply(`\n> [调用工具: ${event.name}]\n`)
-        await reply(`> ${JSON.stringify(event.data.input ?? event.data ?? {})}\n\n`)
+        await reply(`> ${stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`)
       } else if (event.event === 'on_tool_end') {
         await reply(`\n> [工具 ${event.name} 返回完毕]\n\n`)
       }

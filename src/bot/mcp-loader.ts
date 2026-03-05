@@ -100,12 +100,87 @@ const initialMcp = async (workspace: string) => {
   }
 }
 
-let _lastMcpFileMd5: string | null | undefined = undefined
-export const mcpToolsHasChanged = async (workspace: string): Promise<boolean> => {
+const defaultReconnect = {
+  enabled: true,
+  maxAttempts: 10,
+  delayMs: 2000,
+}
+
+const defaultRestart = {
+  enabled: true,
+  maxAttempts: 10,
+  delayMs: 2000,
+}
+
+const ensureMcpConfigExists = async (workspace: string) => {
   const file = Bun.file(join(workspace, 'mcp.json'))
   if (!(await file.exists())) {
     await initialMcp(workspace)
   }
+  return file
+}
+
+const parseMcpConfig = (fileText: string, workspace: string): McpsConfig | null => {
+  try {
+    return JSON.parse(fileText.replaceAll('${workspaceFolder}', workspace))
+  } catch (error) {
+    console.error('[MCP] mcp.json 格式错误，请检查文件内容', error)
+    return null
+  }
+}
+
+const normalizeMcpServers = (config: McpsConfig): ClientConfig['mcpServers'] => {
+  const mcpServers: ClientConfig['mcpServers'] = {}
+
+  for (const [name, server] of Object.entries(config.mcpServers || {})) {
+    const { description: _description, version: _version, ...serverConfig } = server
+
+    if (server.type === 'sse' || server.type === 'http') {
+      mcpServers[name] = {
+        ...serverConfig,
+        reconnect: {
+          ...defaultReconnect,
+          ...server.reconnect,
+        },
+      }
+      continue
+    }
+
+    if (server.type === 'stdio' || (server.type === undefined && server.command)) {
+      const args = Array.isArray(server.args) ? server.args : []
+      if (args.includes('@modelcontextprotocol/server-filesystem')) {
+        console.warn(
+          '@modelcontextprotocol/server-filesystem 已内置在系统中，无需在mcp.json中重复配置，此配置将不会生效',
+        )
+        continue
+      }
+
+      mcpServers[name] = {
+        type: 'stdio',
+        command: server.command,
+        args,
+        cwd: server.cwd,
+        restart: {
+          ...defaultRestart,
+          ...server.restart,
+        },
+        env: {
+          ...httpProxyEnv,
+          ...server.env,
+        },
+      }
+      continue
+    }
+
+    console.warn(`[MCP] ${name} 的配置格式不正确，跳过该 MCP 服务`)
+  }
+
+  return mcpServers
+}
+
+let _lastMcpFileMd5: string | null | undefined = undefined
+export const mcpToolsHasChanged = async (workspace: string): Promise<boolean> => {
+  const file = await ensureMcpConfigExists(workspace)
   let currentMd5: string | null = null
   if (await file.exists()) {
     const hasher = new Bun.CryptoHasher('md5')
@@ -122,69 +197,14 @@ export const mcpToolsHasChanged = async (workspace: string): Promise<boolean> =>
  */
 export const loadMcpTools = async (workspace: string): Promise<McpToolsResult> => {
   console.log('[mcp] mcp 加载中，请稍后...')
-  const file = Bun.file(join(workspace, 'mcp.json'))
-  if (!(await file.exists())) {
-    await initialMcp(workspace)
-  }
+  const file = await ensureMcpConfigExists(workspace)
   const fileText = await file.text()
-  let config: McpsConfig
-  try {
-    config = JSON.parse(fileText.replaceAll('${workspaceFolder}', workspace))
-  } catch (e) {
-    console.error('[MCP] mcp.json 格式错误，请检查文件内容', e)
+  const config = parseMcpConfig(fileText, workspace)
+  if (!config) {
     return { tools: [], client: null }
   }
-  // 将 mcps.json 的格式转换为 MultiServerMCPClient 期望的格式
-  const mcpServers: ClientConfig['mcpServers'] = {}
-  for (const [name, server] of Object.entries(config.mcpServers || {})) {
-    const { description: _description, version: _version, ...serverConfig } = server
-    if (server.type === 'sse') {
-      mcpServers[name] = {
-        ...serverConfig,
-        reconnect: {
-          enabled: true,
-          maxAttempts: 10,
-          delayMs: 2000,
-          ...server.reconnect,
-        },
-      }
-    } else if (server.type === 'http') {
-      mcpServers[name] = {
-        ...serverConfig,
-        reconnect: {
-          enabled: true,
-          maxAttempts: 10,
-          delayMs: 2000,
-          ...server.reconnect,
-        },
-      }
-    } else if (server.type === 'stdio' || (server.type === undefined && server.command)) {
-      if (server.args.includes('@modelcontextprotocol/server-filesystem')) {
-        console.warn(
-          '@modelcontextprotocol/server-filesystem 已内置在系统中，无需在mcp.json中重复配置，此配置将不会生效',
-        )
-        continue
-      }
-      mcpServers[name] = {
-        type: 'stdio',
-        command: server.command,
-        args: server.args,
-        cwd: server.cwd,
-        restart: {
-          enabled: true,
-          maxAttempts: 10,
-          delayMs: 2000,
-          ...server.restart,
-        },
-        env: {
-          ...httpProxyEnv,
-          ...server.env,
-        },
-      }
-    } else {
-      console.warn(`[MCP] ${name} 的配置格式不正确，跳过该 MCP 服务`)
-    }
-  }
+  const mcpServers = normalizeMcpServers(config)
+
   if (Object.keys(mcpServers).length === 0) {
     return { tools: [], client: null }
   }
