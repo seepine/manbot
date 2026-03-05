@@ -71,6 +71,7 @@ export const buildAgent = async (
     loadSkills(workspaceDir),
     loadPromptTools(workspaceDir),
   ])
+  let systemPrompt = `${prompt}\n${buildSkillsPrompt(skills)}`
 
   const llm = new ChatOpenAICompletions({
     apiKey: OPENAI_API_KEY,
@@ -88,6 +89,7 @@ export const buildAgent = async (
     // 工具自动发现模式：用户 MCP 工具通过注册表按需发现
     toolRegistry.register(mcpTools.tools)
     tools.push(...toolRegistry.createProxyTools())
+    systemPrompt += `\n${toolRegistry.getToolsPrompt()}`
   } else {
     tools.push(...(mcpTools?.tools || []))
   }
@@ -96,7 +98,6 @@ export const buildAgent = async (
     tools.push(...opts.additionalTools)
   }
 
-  let systemPrompt = `${prompt}\n${buildSkillsPrompt(skills)}`
   if (opts.additionalSystemPrompt) {
     systemPrompt += `\n${opts.additionalSystemPrompt}`
   }

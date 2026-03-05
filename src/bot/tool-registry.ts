@@ -114,6 +114,14 @@ export class ToolRegistry {
     return {}
   }
 
+  getToolsPrompt(): string {
+    const toolNames = Array.from(this.entries.keys())
+    if (toolNames.length === 0) {
+      return ''
+    }
+    return `Available tools: ${toolNames.join(', ')}. Use the "tools__discover" tool to search for tools and their parameter schemas before invoking.`
+  }
+
   /**
    * 创建用于 agent 的发现和调用元工具
    */
