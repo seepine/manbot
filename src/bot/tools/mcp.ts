@@ -48,7 +48,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
     apis
       .filter((api) => api.trim().startsWith('tvly-'))
       .forEach((api, idx) => {
-        mcpServers[`tavily-search-server-${idx}`] = {
+        mcpServers[`web-search${idx > 0 ? `-${idx}` : ''}`] = {
           type: 'stdio',
           command: `bunx`,
           args: ['-y', '--bun', 'mcp-remote', `https://mcp.tavily.com/mcp/?tavilyApiKey=${api}`],
