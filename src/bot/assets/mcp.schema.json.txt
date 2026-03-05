@@ -50,6 +50,27 @@
               "cwd": {
                 "type": "string",
                 "description": "工作目录"
+              },
+              "restart": {
+                "type": "object",
+                "description": "stdio 子进程异常退出后的自动重启策略",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "是否启用自动重启"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "最大重试次数"
+                  },
+                  "delayMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "两次重试间隔（毫秒）"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -71,6 +92,27 @@
                 "type": "string",
                 "format": "uri",
                 "description": "SSE 端点 URL"
+              },
+              "reconnect": {
+                "type": "object",
+                "description": "连接断开后的自动重连策略",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "是否启用自动重连"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "最大重连次数"
+                  },
+                  "delayMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "两次重连间隔（毫秒）"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
@@ -100,6 +142,27 @@
                   "type": "string"
                 },
                 "description": "自定义请求头，如 Authorization"
+              },
+              "reconnect": {
+                "type": "object",
+                "description": "连接断开后的自动重连策略",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "是否启用自动重连"
+                  },
+                  "maxAttempts": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "最大重连次数"
+                  },
+                  "delayMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "两次重连间隔（毫秒）"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "required": [
