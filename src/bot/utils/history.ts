@@ -19,7 +19,7 @@ export const readHistoryMessages = async (workspaceDir: string, chatId: string) 
     return []
   }
 }
-const { MAX_MESSAGES = '50' } = process.env
+const { MAX_MESSAGES = '20' } = process.env
 const maxMessages = parseInt(MAX_MESSAGES, 10)
 
 export const saveHistoryMessages = async (
