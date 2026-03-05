@@ -1,5 +1,5 @@
 import { createAgent, DynamicStructuredTool } from 'langchain'
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatOpenAICompletions } from '@langchain/openai'
 import { loadMcpTools, mcpToolsHasChanged, type McpToolsResult } from './mcp-loader.ts'
 import { buildSkillsPrompt, loadSkills } from './skills-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
@@ -11,6 +11,7 @@ import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
 import { readHistoryMessages, saveHistoryMessages } from './utils/history.ts'
+import { ToolRegistry } from './tool-registry.ts'
 
 const {
   WORKSPACE_FOLDER = './workspace',
@@ -21,6 +22,7 @@ const {
   OPENAI_TEMPERATURE = '0.7',
   OPENAI_TOP_P = '0.9',
   RECURSION_LIMIT = '100',
+  AUTO_TOOL_DISCOVERY = 'false',
 } = process.env
 
 if (!OPENAI_API_KEY || !OPENAI_BASE_URL || !OPENAI_MODEL) {
@@ -39,6 +41,8 @@ const recursionLimit = parseInt(RECURSION_LIMIT, 10)
 
 let mcpTools: McpToolsResult | null = null
 let innerMcpTools: McpToolsResult | null = null
+const toolRegistry = new ToolRegistry()
+const toolDiscoveryEnabled = AUTO_TOOL_DISCOVERY === 'true'
 
 export const buildAgent = async (
   opts: {
@@ -68,7 +72,7 @@ export const buildAgent = async (
     loadPromptTools(workspaceDir),
   ])
 
-  const llm = new ChatOpenAI({
+  const llm = new ChatOpenAICompletions({
     apiKey: OPENAI_API_KEY,
     configuration: { baseURL: OPENAI_BASE_URL },
     modelName: OPENAI_MODEL,
@@ -78,12 +82,15 @@ export const buildAgent = async (
     timeout: Number(OPENAI_TIMEOUT),
   })
 
-  const tools = [
-    ...systemInnerTools,
-    ...createDownloadTools(workspaceDir),
-    ...innerMcpTools?.tools,
-    ...(mcpTools?.tools || []),
-  ]
+  const tools = [...systemInnerTools, ...createDownloadTools(workspaceDir), ...innerMcpTools?.tools]
+
+  if (toolDiscoveryEnabled && mcpTools?.tools?.length) {
+    // 工具自动发现模式：用户 MCP 工具通过注册表按需发现
+    toolRegistry.register(mcpTools.tools)
+    tools.push(...toolRegistry.createProxyTools())
+  } else {
+    tools.push(...(mcpTools?.tools || []))
+  }
 
   if (opts.additionalTools) {
     tools.push(...opts.additionalTools)
