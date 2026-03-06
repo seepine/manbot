@@ -77,7 +77,7 @@ const createCard = ({ userMessage, atUserName }: { userMessage: string; atUserNa
         streaming_mode: true,
         summary: { content: summary },
         streaming_config: {
-          print_frequency_ms: { default: 70, android: 70, ios: 70, pc: 70 },
+          print_frequency_ms: { default: 40, android: 40, ios: 40, pc: 40 },
           print_step: { default: 1, android: 1, ios: 1, pc: 1 },
           print_strategy: 'fast',
         },

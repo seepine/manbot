@@ -75,6 +75,8 @@ const createModel = () => {
   })
 }
 
+startTasksProcess(workspaceDir)
+
 const stringifyToolInput = (value: unknown): string => {
   try {
     return JSON.stringify(value ?? {})
@@ -95,8 +97,6 @@ export const buildAgent = async (
     additionalSystemPrompt?: string
   } = {},
 ) => {
-  startTasksProcess(workspaceDir)
-
   if (!innerMcpTools) {
     innerMcpTools = await createInnerMcpTools(workspaceDir)
   }
@@ -144,35 +144,58 @@ export const handlerMessage = async (
     additionalTools: [...createTaskTool(type, chatId, senderUnionId)],
   })
   const history = await readHistoryMessages(workspaceDir, chatId)
-  try {
-    const stream = agent.streamEvents(
-      { messages: [...history, { role: 'user', content }] },
-      { version: 'v2', recursionLimit },
-    )
-    let fullContent = ''
-    for await (const event of stream) {
-      if (event.event === 'on_chat_model_stream') {
-        const content = event.data?.chunk?.content
-        if (typeof content === 'string') {
-          await reply(content)
-          fullContent += content
+
+  const queue: string[] = []
+  let isStreamEnded = false
+  // 消息接收起另一个线程
+  const streamProcess = (async () => {
+    try {
+      const stream = agent.streamEvents(
+        { messages: [...history, { role: 'user', content }] },
+        { version: 'v2', recursionLimit },
+      )
+      for await (const event of stream) {
+        if (event.event === 'on_chat_model_stream') {
+          const content = event.data?.chunk?.content
+          if (typeof content === 'string') {
+            queue.push(content)
+          }
+        } else if (event.event === 'on_tool_start') {
+          queue.push(`\n> [调用工具: ${event.name}]\n`)
+          queue.push(`> ${stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`)
+        } else if (event.event === 'on_tool_end') {
+          queue.push(`\n> [工具 ${event.name} 返回完毕]\n\n`)
         }
-      } else if (event.event === 'on_tool_start') {
-        await reply(`\n> [调用工具: ${event.name}]\n`)
-        await reply(`> ${stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`)
-      } else if (event.event === 'on_tool_end') {
-        await reply(`\n> [工具 ${event.name} 返回完毕]\n\n`)
       }
+    } catch (err) {
+      console.error(err)
+      queue.push('\n[错误]' + (err instanceof Error ? err.message : err))
+    } finally {
+      isStreamEnded = true
     }
-    if (fullContent) {
-      await saveHistoryMessages(workspaceDir, chatId, [
-        { role: 'user', content },
-        { role: 'assistant', content: fullContent },
-      ])
+  })()
+
+  let fullContent = ''
+  let waitCount = 1
+  while (!isStreamEnded || queue.length > 0) {
+    if (queue.length === 0) {
+      await Bun.sleep(waitCount * 70)
+      waitCount = Math.min(waitCount + 1, 10)
+      continue
     }
-  } catch (err) {
-    await reply('\n[错误]' + (err instanceof Error ? err.message : err))
-  } finally {
-    await reply('', true)
+    waitCount = 1
+    const msg = queue.splice(0, queue.length).join('')
+    if (msg.length > 0) {
+      fullContent += msg
+      await reply(msg)
+    }
+  }
+  await streamProcess
+  await reply('', true)
+  if (fullContent) {
+    await saveHistoryMessages(workspaceDir, chatId, [
+      { role: 'user', content },
+      { role: 'assistant', content: fullContent },
+    ])
   }
 }
