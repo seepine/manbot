@@ -148,7 +148,7 @@ export const handlerMessage = async (
   const queue: string[] = []
   let isStreamEnded = false
   // 消息接收起另一个线程
-  const streamProcess = (async () => {
+  const streamProcess = new Promise<void>(async (res) => {
     try {
       const stream = agent.streamEvents(
         { messages: [...history, { role: 'user', content }] },
@@ -172,15 +172,16 @@ export const handlerMessage = async (
       queue.push('\n[错误]' + (err instanceof Error ? err.message : err))
     } finally {
       isStreamEnded = true
+      res()
     }
-  })()
+  }).then()
 
   let fullContent = ''
   let waitCount = 1
   while (!isStreamEnded || queue.length > 0) {
     if (queue.length === 0) {
-      await Bun.sleep(waitCount * 70)
-      waitCount = Math.min(waitCount + 1, 10)
+      await Bun.sleep(waitCount * 50)
+      waitCount = Math.min(waitCount + 1, 20)
       continue
     }
     waitCount = 1
