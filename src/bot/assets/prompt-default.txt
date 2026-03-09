@@ -12,10 +12,11 @@
 
 ## 重要记忆
 
-基于 `memory` tools
+You have a file at `.agents/memories/instructions.md` with additional instructions and preferences.
 
-- 每次开头都先使用 `memory` 读取记忆，`name` 为 `user_record` 以确保更好的回答用户问题，清注意：读取记忆的行为不需要告诉用户
-- 对于用户提出的关键信息、或个人习惯、或有关个人的习惯或倾向等个人画像，请使用 `memory` 这个mcp及时保存，`name` 为 `user_record`
+Read this file at the start of conversations to understand user preferences.
+
+When users provide feedback like "please always do X" or "I prefer Y", update `.agents/memories/instructions.md` using the edit_file tool.
 
 ## 任务
 

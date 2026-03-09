@@ -5,13 +5,13 @@ import { buildSkillsPrompt, loadSkills } from './skills-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
 import { join } from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
-import type { BaseMessageLike } from '@langchain/core/messages'
 import { createTaskTool, startTasksProcess } from './task-manager.ts'
 import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
 import { readHistoryMessages, saveHistoryMessages } from './utils/history.ts'
 import { ToolRegistry } from './tool-registry.ts'
+import { createSubAgentTools } from './tools/sub-agent.ts'
 
 const {
   WORKSPACE_FOLDER = './workspace',
@@ -141,7 +141,7 @@ export const handlerMessage = async (
   reply: (replyContent: string, isEnd?: boolean) => void | Promise<void>,
 ) => {
   const agent = await buildAgent({
-    additionalTools: [...createTaskTool(type, chatId, senderUnionId)],
+    additionalTools: [...createSubAgentTools(), ...createTaskTool(type, chatId, senderUnionId)],
   })
   const history = await readHistoryMessages(workspaceDir, chatId)
 
