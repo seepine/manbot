@@ -1,4 +1,4 @@
-import { createAgent, DynamicStructuredTool } from 'langchain'
+import { createAgent, createMiddleware, DynamicStructuredTool } from 'langchain'
 import { ChatOpenAICompletions } from '@langchain/openai'
 import { loadMcpTools, mcpToolsHasChanged, type McpToolsResult } from './mcp-loader.ts'
 import { buildSkillsPrompt, loadSkills } from './skills-loader.ts'
@@ -52,16 +52,8 @@ const openaiTimeout = parseInteger(OPENAI_TIMEOUT, 120000)
 const openaiTemperature = parseDecimal(OPENAI_TEMPERATURE, 0.7)
 const openaiTopP = parseDecimal(OPENAI_TOP_P, 0.9)
 
-let mcpTools: McpToolsResult | null = null
 let innerMcpTools: McpToolsResult | null = null
 const toolDiscoveryEnabled = AUTO_TOOL_DISCOVERY === 'true'
-
-const ensureMcpToolsLoaded = async (): Promise<void> => {
-  if (await mcpToolsHasChanged(workspaceDir)) {
-    await mcpTools?.client?.close().catch(() => {})
-    mcpTools = await loadMcpTools(workspaceDir)
-  }
-}
 
 const createModel = () => {
   return new ChatOpenAICompletions({
@@ -101,8 +93,6 @@ export const buildAgent = async (
     innerMcpTools = await createInnerMcpTools(workspaceDir)
   }
 
-  await ensureMcpToolsLoaded()
-
   const [skills, prompt] = await Promise.all([
     loadSkills(workspaceDir),
     loadPromptTools(workspaceDir),
@@ -112,6 +102,8 @@ export const buildAgent = async (
   const llm = createModel()
 
   const tools = [...systemInnerTools, ...createDownloadTools(workspaceDir), ...innerMcpTools?.tools]
+
+  const mcpTools = await loadMcpTools(workspaceDir)
 
   if (toolDiscoveryEnabled && mcpTools?.tools?.length) {
     // 工具自动发现模式：用户 MCP 工具通过注册表按需发现
@@ -130,7 +122,21 @@ export const buildAgent = async (
   if (opts.additionalSystemPrompt) {
     systemPrompt += `\n${opts.additionalSystemPrompt}`
   }
-  return createAgent({ model: llm, tools, systemPrompt })
+  return createAgent({
+    model: llm,
+    tools,
+    systemPrompt,
+    middleware: [
+      createMiddleware({
+        name: 'clear_tools_state_after_agent',
+        async afterAgent() {
+          try {
+            await mcpTools.client?.close()
+          } catch {}
+        },
+      }),
+    ],
+  })
 }
 
 export const handlerMessage = async (
