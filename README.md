@@ -46,17 +46,20 @@ bunx/uv 的国内源配置请查看 [registry.md](./docs/registry.md)
 
 > 若以二进制文件运行，在二进制同目录下创建 `.env` 文件，配置环境变量。
 
-| 变量名              | 描述                                      | 默认值   |
-| ------------------- | ----------------------------------------- | -------- |
-| `WORKSPACE_FOLDER`  | 机器人工作目录，存放技能、MCP 配置和记忆  |          |
-| `OPENAI_API_KEY`    | OpenAI 或兼容接口的 API Key               | -        |
-| `OPENAI_BASE_URL`   | LLM API 基础地址                          | -        |
-| `OPENAI_MODEL`      | 使用的模型名称                            | `gpt-4o` |
-| `FEISHU_APP_ID`     | 飞书应用 ID                               | -        |
-| `FEISHU_APP_SECRET` | 飞书应用 Secret                           | -        |
-| `FEISHU_APP_NAME`   | 飞书应用名称，用于在群组中判断是否@该应用 | `Manbot` |
-| `TAVILY_API_KEY`    | Tavily API Key，用于 Tavily 搜索服务      | -        |
-| `TERMINAL_ENABLED`  | 是否启用终端，启用后可以直接执行命令      | `false`  |
+| 变量名                | 描述                                      | 默认值                        |
+| --------------------- | ----------------------------------------- | ----------------------------- |
+| `WORKSPACE_FOLDER`    | 机器人工作目录，存放技能、MCP 配置和记忆  |                               |
+| `OPENAI_API_KEY`      | OpenAI 或兼容接口的 API Key               | -                             |
+| `OPENAI_BASE_URL`     | LLM API 基础地址                          | -                             |
+| `OPENAI_MODEL`        | 使用的模型名称                            | `gpt-4o`                      |
+| `ANTHROPIC_AUTH_TOKEN` | Anthropic API Key（设置后优先使用）      | -                             |
+| `ANTHROPIC_BASE_URL`  | Anthropic API 基础地址                    | `https://api.anthropic.com`   |
+| `ANTHROPIC_MODEL`     | Anthropic 模型名称                        | `claude-3-5-sonnet-20241022`  |
+| `FEISHU_APP_ID`       | 飞书应用 ID                               | -                             |
+| `FEISHU_APP_SECRET`   | 飞书应用 Secret                           | -                             |
+| `FEISHU_APP_NAME`     | 飞书应用名称，用于在群组中判断是否@该应用 | `Manbot`                      |
+| `TAVILY_API_KEY`      | Tavily API Key，用于 Tavily 搜索服务      | -                             |
+| `TERMINAL_ENABLED`    | 是否启用终端，启用后可以直接执行命令      | `false`                       |
 
 ## 消息通道配置
 

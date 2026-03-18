@@ -42,17 +42,20 @@ Once the service is started, Manbot will run in the background and listen for Fe
 
 > If running as a binary file, create a `.env` file in the same directory as the binary to configure environment variables.
 
-| Variable Name       | Description                                                                 | Default Value |
-| ------------------- | --------------------------------------------------------------------------- | ------------- |
-| `WORKSPACE_FOLDER`  | Bot working directory, stores skills, MCP config, and memory                |               |
-| `OPENAI_API_KEY`    | OpenAI or compatible API Key                                                | -             |
-| `OPENAI_BASE_URL`   | LLM API Base URL                                                            | -             |
-| `OPENAI_MODEL`      | Model name to use                                                           | `gpt-4o`      |
-| `FEISHU_APP_ID`     | Feishu App ID                                                               | -             |
-| `FEISHU_APP_SECRET` | Feishu App Secret                                                           | -             |
-| `FEISHU_APP_NAME`   | Feishu App Name, used to determine if the app is mentioned in a group       | `Manbot`      |
-| `TAVILY_API_KEY`    | Tavily API Key, used for Tavily search service                              | -             |
-| `TERMINAL_ENABLED`  | Whether to enable terminal, enabled means you can execute commands directly | `false`       |
+| Variable Name         | Description                                                                 | Default Value                    |
+| --------------------- | --------------------------------------------------------------------------- | ------------------------------- |
+| `WORKSPACE_FOLDER`     | Bot working directory, stores skills, MCP config, and memory                |                                 |
+| `OPENAI_API_KEY`       | OpenAI or compatible API Key                                                | -                               |
+| `OPENAI_BASE_URL`      | LLM API Base URL                                                            | -                               |
+| `OPENAI_MODEL`         | Model name to use                                                           | `gpt-4o`                        |
+| `ANTHROPIC_AUTH_TOKEN` | Anthropic API Key (takes priority when set)                                | -                               |
+| `ANTHROPIC_BASE_URL`   | Anthropic API Base URL                                                      | `https://api.anthropic.com`     |
+| `ANTHROPIC_MODEL`      | Anthropic model name                                                        | `claude-3-5-sonnet-20241022`    |
+| `FEISHU_APP_ID`        | Feishu App ID                                                               | -                               |
+| `FEISHU_APP_SECRET`    | Feishu App Secret                                                           | -                               |
+| `FEISHU_APP_NAME`      | Feishu App Name, used to determine if the app is mentioned in a group       | `Manbot`                        |
+| `TAVILY_API_KEY`       | Tavily API Key, used for Tavily search service                              | -                               |
+| `TERMINAL_ENABLED`     | Whether to enable terminal, enabled means you can execute commands directly | `false`                         |
 
 ## Message Channel Configuration
 

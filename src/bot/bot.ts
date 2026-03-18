@@ -1,6 +1,7 @@
 import { createAgent, createMiddleware, DynamicStructuredTool } from 'langchain'
 import { ChatOpenAICompletions } from '@langchain/openai'
-import { loadMcpTools, mcpToolsHasChanged, type McpToolsResult } from './mcp-loader.ts'
+import { ChatAnthropic } from '@langchain/anthropic'
+import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
 import { buildSkillsPrompt, loadSkills } from './skills-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
 import { join } from 'node:path'
@@ -23,9 +24,14 @@ const {
   OPENAI_TOP_P = '0.9',
   RECURSION_LIMIT = '100',
   AUTO_TOOL_DISCOVERY = 'false',
+  ANTHROPIC_AUTH_TOKEN,
+  ANTHROPIC_BASE_URL = 'https://api.anthropic.com',
+  ANTHROPIC_MODEL = 'claude-3-5-sonnet-20241022',
 } = process.env
 
-if (!OPENAI_API_KEY || !OPENAI_BASE_URL || !OPENAI_MODEL) {
+const useAnthropic = Boolean(ANTHROPIC_AUTH_TOKEN)
+
+if (!useAnthropic && (!OPENAI_API_KEY || !OPENAI_BASE_URL || !OPENAI_MODEL)) {
   console.error('请在 .env 文件中设置 OPENAI_API_KEY OPENAI_BASE_URL 和 OPENAI_MODEL')
   process.exit(1)
 }
@@ -56,6 +62,16 @@ let innerMcpTools: McpToolsResult | null = null
 const toolDiscoveryEnabled = AUTO_TOOL_DISCOVERY === 'true'
 
 const createModel = () => {
+  if (useAnthropic) {
+    return new ChatAnthropic({
+      apiKey: ANTHROPIC_AUTH_TOKEN,
+      anthropicApiUrl: ANTHROPIC_BASE_URL,
+      model: ANTHROPIC_MODEL,
+      streaming: true,
+      temperature: openaiTemperature,
+      topP: openaiTopP,
+    })
+  }
   return new ChatOpenAICompletions({
     apiKey: OPENAI_API_KEY,
     configuration: { baseURL: OPENAI_BASE_URL },
@@ -160,11 +176,33 @@ export const handlerMessage = async (
         { messages: [...history, { role: 'user', content }] },
         { version: 'v2', recursionLimit },
       )
+      let isThinking = false
       for await (const event of stream) {
         if (event.event === 'on_chat_model_stream') {
-          const content = event.data?.chunk?.content
+          const chunk = event.data?.chunk
+          const content = chunk?.content
+          // 兼容 OpenAI 格式（content 是 string）和 Anthropic 格式（content 是数组）
           if (typeof content === 'string') {
             queue.push(content)
+          } else if (useAnthropic && Array.isArray(content)) {
+            for (const item of content) {
+              if (item.type === 'thinking') {
+                if (!isThinking) {
+                  isThinking = true
+                  queue.push('\n> [思考中...]\n> ')
+                }
+                queue.push(item.thinking || '')
+              } else if (item.type === 'text') {
+                // 思考结束时，先推送思考内容，再推送文本
+                if (isThinking) {
+                  queue.push('\n')
+                  isThinking = false
+                }
+                if (typeof item.text === 'string') {
+                  queue.push(item.text)
+                }
+              }
+            }
           }
         } else if (event.event === 'on_tool_start') {
           queue.push(`\n> [调用工具: ${event.name}]\n`)
