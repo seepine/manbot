@@ -169,7 +169,10 @@ export const handlerMessage = async (
   })
   const history = await readHistoryMessages(workspaceDir, chatId)
 
-  const queue: string[] = []
+  const queue: {
+    type: 'thinking' | 'text' | 'tool_start' | 'tool_end'
+    content?: string
+  }[] = []
   let isStreamEnded = false
   // 消息接收起另一个线程
   const streamProcess = new Promise<void>(async (res) => {
@@ -185,42 +188,48 @@ export const handlerMessage = async (
           const content = chunk?.content
           // 兼容 OpenAI 格式（content 是 string）和 Anthropic 格式（content 是数组）
           if (typeof content === 'string') {
-            queue.push(content)
+            queue.push({ type: 'text', content })
           } else if (useAnthropic && Array.isArray(content)) {
             for (const item of content) {
               if (item.type === 'thinking') {
                 if (!isThinking) {
                   isThinking = true
-                  queue.push('\n> [思考中...]\n')
+                  queue.push({
+                    type: 'thinking',
+                    content: '\n> [思考中...]\n\n',
+                  })
                   if (showThinkingEnabled) {
-                    queue.push(`> `)
+                    queue.push({ type: 'thinking', content: '> ' })
                   }
                 }
                 if (showThinkingEnabled) {
-                  queue.push(item.thinking || '')
+                  queue.push({ type: 'thinking', content: item.thinking || '' })
                 }
               } else if (item.type === 'text') {
                 // 思考结束时，先推送思考内容，再推送文本
                 if (isThinking) {
-                  queue.push('\n')
+                  queue.push({ type: 'thinking', content: '\n\n' })
                   isThinking = false
                 }
                 if (typeof item.text === 'string') {
-                  queue.push(item.text)
+                  queue.push({ type: 'text', content: item.text })
                 }
               }
             }
           }
         } else if (event.event === 'on_tool_start') {
-          queue.push(`\n> [调用工具: ${event.name}]\n`)
-          queue.push(`> ${stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`)
+          queue.push({ type: 'tool_start', content: `\n> [调用工具: ${event.name}]\n` })
+          queue.push({
+            type: 'tool_start',
+            content: `> ${stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`,
+          })
         } else if (event.event === 'on_tool_end') {
-          queue.push(`\n> [工具 ${event.name} 返回完毕]\n\n`)
+          queue.push({ type: 'tool_end', content: `\n> [工具 ${event.name} 返回完毕]\n\n` })
         }
       }
     } catch (err) {
       console.error(err)
-      queue.push('\n[错误]' + (err instanceof Error ? err.message : err))
+      queue.push({ type: 'text', content: '\n[错误]' + (err instanceof Error ? err.message : err) })
     } finally {
       isStreamEnded = true
       res()
@@ -236,10 +245,16 @@ export const handlerMessage = async (
       continue
     }
     waitCount = 1
-    const msg = queue.splice(0, queue.length).join('')
-    if (msg.length > 0) {
-      fullContent += msg
-      await reply(msg)
+    const popMessage = queue.splice(0, queue.length)
+    if (popMessage.length > 0) {
+      // 拆分消息，只保存关键消息到历史记录，其他消息只用于实时回复展示
+      const sendMsg = popMessage.map((item) => item.content).join('')
+      await reply(sendMsg)
+      const usefulContent = popMessage
+        .filter((item) => item.type === 'text')
+        .map((item) => item.content)
+        .join('')
+      fullContent += usefulContent || ''
     }
   }
   await streamProcess
