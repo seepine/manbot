@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.3.13](https://github.com/seepine/manbot/compare/v0.3.12...v0.3.13) (2026-03-19)
+
+
+### Features
+
+* **bot:** implement selective message persistence for conversation history ([e4bd027](https://github.com/seepine/manbot/commit/e4bd027bb658cfd27ca97660ff35364fbc3f1c3f))
+
+
+### Bug Fixes
+
+* **mcp-loader:** 修复确保配置文件存在时的文件引用问题 ([065958a](https://github.com/seepine/manbot/commit/065958ab88201d09fd50dbc749b7f0953c52af37))
+
 ## [0.3.12](https://github.com/seepine/manbot/compare/v0.3.10...v0.3.12) (2026-03-19)
 
 
