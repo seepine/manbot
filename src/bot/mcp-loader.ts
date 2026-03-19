@@ -113,9 +113,10 @@ const defaultRestart = {
 }
 
 const ensureMcpConfigExists = async (workspace: string) => {
-  const file = Bun.file(join(workspace, 'mcp.json'))
+  let file = Bun.file(join(workspace, 'mcp.json'))
   if (!(await file.exists())) {
     await initialMcp(workspace)
+    file = Bun.file(join(workspace, 'mcp.json'))
   }
   return file
 }
