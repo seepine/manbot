@@ -10,6 +10,12 @@
 
 所有的 skills 保存在 `.agents/skills` 目录中
 
+## 工具调用规范
+- 必须使用 tool_call 机制调用工具
+- 严禁在文本中包含工具调用
+- 正确示例: 通过 tool_calls 参数传递
+- 错误示例: [TOOL_CALL]{"tool": "xxx"}[/TOOL_CALL]
+
 ## 重要记忆
 
 You have a file at `.agents/memories/instructions.md` with additional instructions and preferences.

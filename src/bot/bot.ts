@@ -24,12 +24,12 @@ const {
   OPENAI_TOP_P = '0.9',
   RECURSION_LIMIT = '100',
   AUTO_TOOL_DISCOVERY = 'false',
-  ANTHROPIC_AUTH_TOKEN,
+  ANTHROPIC_AUTH_TOKEN = '',
   ANTHROPIC_BASE_URL = 'https://api.anthropic.com',
   ANTHROPIC_MODEL = 'claude-3-5-sonnet-20241022',
 } = process.env
 
-const useAnthropic = Boolean(ANTHROPIC_AUTH_TOKEN)
+const useAnthropic = ANTHROPIC_AUTH_TOKEN.length > 0
 
 if (!useAnthropic && (!OPENAI_API_KEY || !OPENAI_BASE_URL || !OPENAI_MODEL)) {
   console.error('请在 .env 文件中设置 OPENAI_API_KEY OPENAI_BASE_URL 和 OPENAI_MODEL')
