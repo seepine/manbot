@@ -27,6 +27,7 @@ const {
   ANTHROPIC_AUTH_TOKEN = '',
   ANTHROPIC_BASE_URL = 'https://api.anthropic.com',
   ANTHROPIC_MODEL = 'claude-3-5-sonnet-20241022',
+  SHOW_THINKING = 'false',
 } = process.env
 
 const useAnthropic = ANTHROPIC_AUTH_TOKEN.length > 0
@@ -57,6 +58,7 @@ const recursionLimit = parseInteger(RECURSION_LIMIT, 100)
 const openaiTimeout = parseInteger(OPENAI_TIMEOUT, 120000)
 const openaiTemperature = parseDecimal(OPENAI_TEMPERATURE, 0.7)
 const openaiTopP = parseDecimal(OPENAI_TOP_P, 0.9)
+const showThinkingEnabled = SHOW_THINKING === 'true'
 
 let innerMcpTools: McpToolsResult | null = null
 const toolDiscoveryEnabled = AUTO_TOOL_DISCOVERY === 'true'
@@ -189,9 +191,14 @@ export const handlerMessage = async (
               if (item.type === 'thinking') {
                 if (!isThinking) {
                   isThinking = true
-                  queue.push('\n> [思考中...]\n> ')
+                  queue.push('\n> [思考中...]\n')
+                  if (showThinkingEnabled) {
+                    queue.push(`> `)
+                  }
                 }
-                queue.push(item.thinking || '')
+                if (showThinkingEnabled) {
+                  queue.push(item.thinking || '')
+                }
               } else if (item.type === 'text') {
                 // 思考结束时，先推送思考内容，再推送文本
                 if (isThinking) {

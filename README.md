@@ -60,6 +60,7 @@ bunx/uv 的国内源配置请查看 [registry.md](./docs/registry.md)
 | `FEISHU_APP_NAME`     | 飞书应用名称，用于在群组中判断是否@该应用 | `Manbot`                      |
 | `TAVILY_API_KEY`      | Tavily API Key，用于 Tavily 搜索服务      | -                             |
 | `TERMINAL_ENABLED`    | 是否启用终端，启用后可以直接执行命令      | `false`                       |
+| `SHOW_THINKING`       | 是否显示思考内容（仅适用于 Anthropic 模型）| `false`                       |
 
 ## 消息通道配置
 

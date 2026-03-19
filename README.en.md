@@ -56,6 +56,7 @@ Once the service is started, Manbot will run in the background and listen for Fe
 | `FEISHU_APP_NAME`      | Feishu App Name, used to determine if the app is mentioned in a group       | `Manbot`                        |
 | `TAVILY_API_KEY`       | Tavily API Key, used for Tavily search service                              | -                               |
 | `TERMINAL_ENABLED`     | Whether to enable terminal, enabled means you can execute commands directly | `false`                         |
+| `SHOW_THINKING`        | Whether to display thinking content (Anthropic models only)                   | `false`                         |
 
 ## Message Channel Configuration
 
