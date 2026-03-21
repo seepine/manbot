@@ -39,9 +39,9 @@ bunx clawhub login
 
 ## 安全审查
 
-安装完成后进行安全审查：
+安装完成后进行安全审查，先使用 `skills__get_list` 这个 tool 查看是否有无审查相关的skill
 
-1. 有审查tool或skill，例如 skill-vetter，则使用工具审查
+1. 有审查tool或skill，例如 skill-vetter 等，则使用工具审查
 2. 无审查tool或skill，手动读取 skill 源码，检查：
    - 网络请求（是否有可疑外部调用）
    - 文件操作（是否只操作预期目录）
