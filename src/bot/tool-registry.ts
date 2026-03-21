@@ -119,7 +119,7 @@ export class ToolRegistry {
     if (toolNames.length === 0) {
       return ''
     }
-    return `Available tools: ${toolNames.join(', ')}. Use the "tools__discover" tool to search for tools and their parameter schemas before invoking.`
+    return `Available mcps: ${toolNames.join(', ')}. Use the "mcps__discover" to search for mcps and their parameter schemas before invoking.`
   }
 
   /**
@@ -128,14 +128,14 @@ export class ToolRegistry {
   createProxyTools(): DynamicStructuredTool[] {
     return [
       new DynamicStructuredTool({
-        name: 'tools__discover',
+        name: 'mcps__discover',
         description:
-          'Search available tools. Returns tool names, descriptions and parameter schemas. Use this when you need to call a tool.',
+          'Search available mcps. Returns mcp names, descriptions and parameter schemas. Use this when you need to call a mcp.',
         schema: z.object({
           keyword: z
             .string()
             .describe(
-              'Keyword to search in tool names and descriptions. Use empty string to list all.',
+              'Keyword to search in mcp names and descriptions. Use empty string to list all.',
             )
             .optional(),
         }),
@@ -149,13 +149,13 @@ export class ToolRegistry {
             score: number
           }[] = []
 
-          for (const tool of this.entries.values()) {
-            const { matched, score } = this.matchToolByKeyword(tool, kw, tokens)
+          for (const mcp of this.entries.values()) {
+            const { matched, score } = this.matchToolByKeyword(mcp, kw, tokens)
             if (matched) {
               results.push({
-                name: tool.name,
-                description: (tool.description || '').slice(0, 200),
-                parameters: this.getToolSchema(tool),
+                name: mcp.name,
+                description: (mcp.description || '').slice(0, 200),
+                parameters: this.getToolSchema(mcp),
                 score,
               })
             }
@@ -163,22 +163,22 @@ export class ToolRegistry {
 
           results.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
 
-          return results.length ? JSON.stringify(results, null, 2) : 'No tools found.'
+          return results.length ? JSON.stringify(results, null, 2) : 'No mcps found.'
         },
       }),
       new DynamicStructuredTool({
-        name: 'tools__invoke',
+        name: 'mcps__invoke',
         description:
-          'Invoke a discovered tool by its exact name. Always use tools__discover first to find the tool and its parameter schema.',
+          'Invoke a discovered mcp by its exact name. Always use mcps__discover first to find the mcp and its parameter schema.',
         schema: z.object({
-          name: z.string().describe('Exact tool name from tools__discover results'),
-          input: z.record(z.string(), z.any()).describe('Tool input parameters as key-value pairs'),
+          name: z.string().describe('Exact mcp name from mcps__discover results'),
+          input: z.record(z.string(), z.any()).describe('Mcp input parameters as key-value pairs'),
         }),
         func: async ({ name, input }) => {
-          const tool = this.entries.get(name)
-          if (!tool) return `Tool "${name}" not found. Use tools__discover to search.`
+          const mcp = this.entries.get(name)
+          if (!mcp) return `Mcp "${name}" not found. Use mcps__discover to search.`
           try {
-            const result = await tool.invoke(input)
+            const result = await mcp.invoke(input)
             return typeof result === 'string' ? result : JSON.stringify(result)
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err)
@@ -186,7 +186,7 @@ export class ToolRegistry {
               return [
                 `Error calling "${name}": ${message}`,
                 `Provided input: ${JSON.stringify(input)}`,
-                `Please call tools__discover with keyword "${name}" and strictly follow the returned parameter schema (required fields + exact field names).`,
+                `Please call mcps__discover with keyword "${name}" and strictly follow the returned parameter schema (required fields + exact field names).`,
               ].join('\n')
             }
             return `Error calling "${name}": ${message}`
