@@ -1,0 +1,51 @@
+# Skill Install Helper
+
+当用户提出安装 skill 需求时使用此 skill，按照优先级尝试以下安装方式：
+
+## 安装步骤
+
+### 判断安装方式
+
+| 输入 | 类型 | 说明 |
+|------|------|------|
+| `skill-vetter` | 普通名称 | 按照优先级依次执行安装命令 |
+| `https://github.com/org/repo` | GitHub URL | `bunx skills add <url>` |
+| `https://clawhub.ai/org/skill-name` | clawHub URL | 见下方 |
+
+### 安装优先级
+
+1. **bunx skills add**：官方源
+2. **bunx skills add `<URL>`**：GitHub 仓库
+3. **bunx clawhub install**：clawHub
+
+### 1. 官方源 / GitHub
+
+```bash
+bunx skills add <name-or-url>
+```
+
+### 2. clawHub 安装
+
+clawHub URL 格式：`https://clawhub.ai/<org>/<skill-name>`
+
+```bash
+cd .agents && bunx clawhub install <skill-name> --force
+```
+
+请注意，clawhub有概率触发限速，若限速后建议用户手动执行命令登录后再重试
+```
+bunx clawhub login
+```
+
+## 安全审查
+
+安装完成后进行安全审查：
+
+1. 有审查tool或skill，例如 skill-vetter，则使用工具审查
+2. 无审查tool或skill，手动读取 skill 源码，检查：
+   - 网络请求（是否有可疑外部调用）
+   - 文件操作（是否只操作预期目录）
+   - 敏感信息（是否收集密钥/凭证）
+   - 代码来源（是否为恶意仓库）
+
+发现安全隐患时，提醒用户确认是否保留。

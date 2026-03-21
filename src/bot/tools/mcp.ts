@@ -19,15 +19,6 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
       args: ['-y', '--bun', '@modelcontextprotocol/server-filesystem', workspaceFolder],
       restart: defaultRestart,
     },
-    memory: {
-      type: 'stdio',
-      command: 'bunx',
-      args: ['-y', '--bun', '@modelcontextprotocol/server-memory'],
-      restart: defaultRestart,
-      env: {
-        MEMORY_FILE_PATH: join(workspaceFolder, '.data', 'memory-data.jsonl'),
-      },
-    },
   }
   const { env } = process
 

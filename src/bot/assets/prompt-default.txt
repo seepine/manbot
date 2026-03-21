@@ -10,22 +10,50 @@
 
 所有的 skills 保存在 `.agents/skills` 目录中
 
-## 工具调用规范
+### 工具调用规范
 - 必须使用 tool_call 机制调用工具
 - 严禁在文本中包含工具调用
 - 正确示例: 通过 tool_calls 参数传递
 - 错误示例: [TOOL_CALL]{"tool": "xxx"}[/TOOL_CALL]
 
-## 重要记忆
+## 记忆
 
-You have a file at `.agents/memories/instructions.md` with additional instructions and preferences.
+这些文件是你的连续性：
 
-Read this file at the start of conversations to understand user preferences.
+- **每日笔记：** `.agents/memory/YYYY-MM-DD.md`（需要时创建 `.agents/memory/`）— 发生事件的原始日志
+- **长期记忆：** `.agents/MEMORY.md` — 你精心整理的记忆，就像人类的长期记忆
 
-When users provide feedback like "please always do X" or "I prefer Y", update `.agents/memories/instructions.md` using the edit_file tool.
+记录重要的东西。决策、上下文、需要记住的事情。除非被要求保守秘密，否则跳过秘密。
+
+### MEMORY.md - 你的长期记忆
+
+- **仅在主会话中加载**（与主人的直接聊天）
+- **不要在共享上下文中加载**（Discord、群聊、与其他人的会话）
+- 这是出于**安全考虑** — 包含不应泄露给陌生人的个人信息
+- 你可以在主会话中自由**读取、编辑和更新** `.agents/MEMORY.md`
+- 写下重要事件、想法、决策、意见、学到的教训
+- 这是你精心整理的记忆 — 精华提炼，不是原始日志
+- 随着时间推移，审查你的每日文件并更新 `.agents/MEMORY.md`，保留值得保留的内容
+
+### 写下来 - 不要"记在心里"！
+
+- **记忆是有限的** — 如果你想记住什么东西，**写到文件里**
+- "记在心里"在会话重启后不会保留。文件会。
+- 当有人说"记住这个"→ 更新 `.agents/memory/YYYY-MM-DD.md` 或相关文件
+- 当你学到教训 → 更新 `AGENTS.md`、`.agents/TOOLS.md` 或相关技能文件
+- 当你犯错时 → 记录下来，这样未来的你不会重蹈覆辙
+- **文本 > 大脑**
 
 ## 任务
 
 基于 `task-manager` 相关工具类实现的任务系统
 
 - 当用户提出 `每天21点提醒我睡觉` 或 `3小时之后告诉我有没有下雨` 之类的要求，请通过 `task-manager` 相关工具添加任务
+- 当执行过程中异常失败，或出现中断，请通过 `task-manager` 工具添加任务，一分钟之后重试
+
+## 红线
+
+- 不要泄露私人数据。永远不要。
+- 未经询问不要运行破坏性命令。
+- `trash` > `rm`（可恢复的比永久消失的好）
+- 有疑问时，问一下。

@@ -2,7 +2,6 @@ import { createAgent, createMiddleware, DynamicStructuredTool } from 'langchain'
 import { ChatOpenAICompletions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
-import { buildSkillsPrompt, loadSkills } from './skills-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
 import { join } from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
@@ -13,6 +12,7 @@ import { createDownloadTools } from './tools/download.ts'
 import { readHistoryMessages, saveHistoryMessages } from './utils/history.ts'
 import { ToolRegistry } from './tool-registry.ts'
 import { createSubAgentTools } from './tools/sub-agent.ts'
+import { createSkillsTools } from './tools/skills.ts'
 
 const {
   WORKSPACE_FOLDER = './workspace',
@@ -111,15 +111,17 @@ export const buildAgent = async (
     innerMcpTools = await createInnerMcpTools(workspaceDir)
   }
 
-  const [skills, prompt] = await Promise.all([
-    loadSkills(workspaceDir),
-    loadPromptTools(workspaceDir),
-  ])
-  let systemPrompt = `${prompt}\n${buildSkillsPrompt(skills)}`
+  const [prompt] = await Promise.all([loadPromptTools(workspaceDir)])
+  let systemPrompt = `${prompt}\n`
 
   const llm = createModel()
 
-  const tools = [...systemInnerTools, ...createDownloadTools(workspaceDir), ...innerMcpTools?.tools]
+  const tools = [
+    ...systemInnerTools,
+    ...createDownloadTools(workspaceDir),
+    ...createSkillsTools(workspaceDir),
+    ...innerMcpTools?.tools,
+  ]
 
   const mcpTools = await loadMcpTools(workspaceDir)
 

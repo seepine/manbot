@@ -14,7 +14,7 @@ export interface Task {
   lastRunTime?: string
   content: string
   isReminder: boolean
-  channelConfig: { type: 'feishu'; chatId: string; atUserId?: string }
+  channelConfig: { type: 'feishu'; chatId: string; atUserId: string }
 }
 
 let _workspaceFolder: string | undefined
@@ -63,11 +63,13 @@ const sendTaskResult = async (taskId: string, task: Task, content: string) => {
  */
 const runAgent = async (taskId: string, task: Task) => {
   const agent = await buildAgent({
-    // additionalTools: createTaskTool(
-    //   task.channelConfig.type,
-    //   task.channelConfig.chatId,
-    //   task.channelConfig.atUserId || '',
-    // ),
+    additionalTools: [
+      ...createTaskTool(
+        task.channelConfig.type,
+        task.channelConfig.chatId,
+        task.channelConfig.atUserId,
+      ),
+    ],
   })
 
   const prompt = task.isReminder
