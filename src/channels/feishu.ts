@@ -3,6 +3,39 @@ import { Channel } from './channel.ts'
 import type { MessageHandler } from './channel.ts'
 import type { FeishuChannelConfig } from '../config/types.ts'
 
+/**
+ * Send a message to a Feishu chat without needing a channel instance.
+ * This is useful for background tasks that need to send results.
+ */
+export async function sendFeishuMessage(
+  appId: string,
+  appSecret: string,
+  chatId: string,
+  content: string,
+  atUserUnionId?: string,
+): Promise<void> {
+  const client = new Lark.Client({ appId, appSecret })
+  await client.im.v1.message.create({
+    params: { receive_id_type: 'chat_id' },
+    data: {
+      receive_id: chatId,
+      content: JSON.stringify({
+        zh_cn: {
+          content: [
+            [
+              {
+                tag: 'md',
+                text: atUserUnionId ? `<at user_id="${atUserUnionId}"></at>\n${content}` : content,
+              },
+            ],
+          ],
+        },
+      }),
+      msg_type: 'post',
+    },
+  })
+}
+
 type FeishuMessageData = {
   event_id?: string
   token?: string

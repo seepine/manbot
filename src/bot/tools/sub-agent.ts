@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from 'langchain'
 import { z } from 'zod'
-import { buildAgent } from '../bot'
+import { buildAgent } from '../../bot/build-agent'
 import { randomUUIDv7 } from 'bun'
 
 interface SubAgentTask {

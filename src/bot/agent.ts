@@ -3,7 +3,7 @@ import { ChatOpenAICompletions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { existsSync, mkdirSync } from 'node:fs'
 import { Channel } from '../channels/channel.ts'
-import type { ProviderConfig } from '../config/types.ts'
+import type { ProviderConfig, FeishuChannelConfig } from '../config/types.ts'
 import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
 import { createTaskTool, startTasksProcess } from './task-manager.ts'
@@ -26,9 +26,10 @@ export class Agent {
     config: ProviderConfig
     workspace: string
     channel: Channel
+    channelConfig: FeishuChannelConfig
   }) {
     this.initWorkspace()
-    startTasksProcess(opts.workspace)
+    startTasksProcess(opts.workspace, opts.channelConfig)
     this.llm = this.createModel()
   }
 
@@ -71,7 +72,7 @@ export class Agent {
       ...systemInnerTools,
       ...createDownloadTools(workspace),
       ...createSkillsTools(workspace),
-      ...(this.innerMcpTools?.tools ?? []),
+      ...(this.innerMcpTools?.tools ?? []) as DynamicStructuredTool[],
     ]
 
     const mcpTools = await loadMcpTools(workspace)
@@ -80,7 +81,7 @@ export class Agent {
       toolRegistry.register(mcpTools.tools)
       this.tools.push(...toolRegistry.createProxyTools())
     } else {
-      this.tools.push(...(mcpTools?.tools ?? []))
+      this.tools.push(...(mcpTools?.tools ?? []) as DynamicStructuredTool[])
     }
 
     this.agent = createAgent({
@@ -134,7 +135,7 @@ export class Agent {
       try {
         const additionalTools = [
           ...createSubAgentTools(),
-          ...createTaskTool(this.opts.channel.type, data.chatId, data.senderUnionId),
+          ...createTaskTool(this.opts.channel.type as 'feishu', data.chatId, data.senderUnionId),
         ]
 
         const stream = this.agent!.streamEvents(
