@@ -20,6 +20,7 @@ for (const [agentName, agentConfig] of Object.entries(config.agents)) {
     config: mergedConfig,
     workspace,
     channel,
+    channelConfig: agentConfig.channel,
   })
 
   agents.push(agent)

@@ -4,8 +4,9 @@ import { randomUUID } from 'crypto'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import dayjs from 'dayjs'
-import { buildAgent } from './bot'
+import { buildAgent } from './build-agent'
 import { sendFeishuMessage } from '../channels/feishu'
+import type { FeishuChannelConfig } from '../config/types.ts'
 
 export interface Task {
   status: 'pending' | 'ing'
@@ -18,6 +19,7 @@ export interface Task {
 }
 
 let _workspaceFolder: string | undefined
+let _feishuChannelConfig: FeishuChannelConfig | undefined
 const tasks: Record<string, Task> = {}
 const DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss'
 
@@ -52,9 +54,16 @@ const delTask = async (taskId: string) => {
  * Send task execution result
  */
 const sendTaskResult = async (taskId: string, task: Task, content: string) => {
+  if (!_feishuChannelConfig) return
   const { type, chatId, atUserId } = task.channelConfig
   if (type === 'feishu') {
-    await sendFeishuMessage(chatId, `> 任务 ${taskId} 执行完毕\n\n${content}`, atUserId || '')
+    await sendFeishuMessage(
+      _feishuChannelConfig['app-id'],
+      _feishuChannelConfig['app-secret'],
+      chatId,
+      `> 任务 ${taskId} 执行完毕\n\n${content}`,
+      atUserId || '',
+    )
   }
 }
 
@@ -152,9 +161,10 @@ const loadTasks = async (workspaceFolder: string) => {
 /**
  * Start the task processing loop
  */
-export const startTasksProcess = async (workspaceFolder: string) => {
+export const startTasksProcess = async (workspaceFolder: string, feishuChannelConfig?: FeishuChannelConfig) => {
   if (_workspaceFolder) return
   _workspaceFolder = workspaceFolder
+  _feishuChannelConfig = feishuChannelConfig
 
   await loadTasks(workspaceFolder)
 
