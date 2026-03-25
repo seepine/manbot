@@ -1,0 +1,24 @@
+# 默认模型提供商
+provider:
+  type: openai # 或 anthropic，默认openai
+  base-url:
+  api-key:
+  model:
+
+agents:
+  # 默认 agent
+  main:
+    workspace-dir: workspace-main # 可选，未配置默认 workspace-<agentName>
+    channel:
+      type: feishu # 目前只支持飞书
+      app-id:
+      app-secret:
+      app-name:
+  # 第二个 agent ...
+  second-agents:
+    # agent 的提供商优先于默认的
+    provider:
+      type: openai # 或 anthropic，默认openai
+      base-url:
+      api-key:
+      model:
