@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import yaml from 'js-yaml'
-import type { Config, ProviderConfig, AgentConfig } from './types.ts'
+import type { Config, ProviderConfig, AgentProviderConfig } from './types.ts'
 
 function resolveEnvVariables(value: string): string {
   return value.replace(/\$\{(\w+)\}/g, (_, envVar) => process.env[envVar] || '')
@@ -24,32 +24,50 @@ function processValue(val: unknown): unknown {
   return val
 }
 
-function mergeProvider(defaultProvider: ProviderConfig, agentProvider?: Partial<ProviderConfig>): ProviderConfig {
-  if (!agentProvider) return defaultProvider
-  return { ...defaultProvider, ...agentProvider }
+const getConfigFile = async (configPath?: string) => {
+  const paths: string[] = []
+  if (configPath) {
+    paths.push(configPath.startsWith('/') ? configPath : join(process.cwd(), configPath))
+  }
+  paths.push(...[join(process.cwd(), 'config.yml'), join(process.cwd(), 'config.yaml')])
+  for (const path of paths) {
+    const file = Bun.file(path)
+    if (await file.exists()) {
+      return file
+    }
+  }
+  throw new Error('config.yml 文件不存在')
 }
 
-export function loadConfig(configPath?: string): Config {
-  const path = configPath || join(process.cwd(), 'config.yml')
-  const fileContent = readFileSync(path, 'utf-8')
-  const raw = yaml.load(fileContent) as Record<string, unknown>
+export async function loadConfig(configPath?: string): Promise<Config> {
+  const configFile = await getConfigFile(configPath)
+  const raw = yaml.load(await configFile.text()) as Record<string, unknown>
   const processed = processValue(raw) as Config
 
   // Validate required fields
-  if (!processed.provider?.['api-key'] || !processed.provider?.model) {
-    throw new Error('config.yml 中 provider.api-key 和 provider.model 为必填字段')
+  if (!processed.providers || Object.keys(processed.providers).length === 0) {
+    throw new Error('config.yml 中必须至少配置一个 provider')
   }
-  if (!processed.agents || Object.keys(processed.agents).length === 0) {
+  for (const [name, provider] of Object.entries(processed.providers)) {
+    if (!provider['api-key']) {
+      throw new Error(`provider "${name}" 的 api-key 为必填字段`)
+    }
+  }
+
+  if (!processed.agents || Object.entries(processed.agents).length === 0) {
     throw new Error('config.yml 中必须至少配置一个 agent')
   }
+
   for (const [name, agentConfig] of Object.entries(processed.agents)) {
-    if (!agentConfig.channel?.['app-id'] || !agentConfig.channel?.['app-secret']) {
-      throw new Error(`agent "${name}" 的 channel.app-id 和 channel.app-secret 为必填字段`)
+    if (!agentConfig.provider?.name || !agentConfig.provider?.model) {
+      throw new Error(`agent "${name}" 的 provider.name 和 provider.model 为必填字段`)
+    }
+
+    if (agentConfig.channel.type === 'feishu') {
+      if (!agentConfig.channel?.['app-id'] || !agentConfig.channel?.['app-secret']) {
+        throw new Error(`agent "${name}" 的 channel.app-id 和 channel.app-secret 为必填字段`)
+      }
     }
   }
   return processed
-}
-
-export function mergeConfig(defaultProvider: ProviderConfig, agentConfig: AgentConfig): ProviderConfig {
-  return mergeProvider(defaultProvider, agentConfig.provider)
 }

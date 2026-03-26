@@ -1,6 +1,6 @@
 import * as Lark from '@larksuiteoapi/node-sdk'
 import { Channel } from './channel.ts'
-import type { MessageHandler } from './channel.ts'
+import type { MessageHandler, MessageContent } from './channel.ts'
 import type { FeishuChannelConfig } from '../config/types.ts'
 
 /**
@@ -101,7 +101,12 @@ export class FeishuChannel extends Channel {
     await wsClient.start({ eventDispatcher })
   }
 
-  async sendMessage(chatId: string, content: string, atUserUnionId?: string): Promise<void> {
+  async sendMessage(
+    chatId: string,
+    content: Array<MessageContent>,
+    atUserUnionId?: string,
+  ): Promise<void> {
+    const text = content.join('\n')
     await this.client.im.v1.message.create({
       params: { receive_id_type: 'chat_id' },
       data: {
@@ -112,7 +117,7 @@ export class FeishuChannel extends Channel {
               [
                 {
                   tag: 'md',
-                  text: atUserUnionId ? `<at user_id="${atUserUnionId}"></at>\n${content}` : content,
+                  text: atUserUnionId ? `<at user_id="${atUserUnionId}"></at>\n${text}` : text,
                 },
               ],
             ],
@@ -216,11 +221,8 @@ export class FeishuChannel extends Channel {
     let allReplyContent = ''
 
     await handler(
-      {
-        chatId: chat_id,
-        content: question,
-        senderUnionId: senderUnionId || '',
-      },
+      [question],
+      { chatId: chat_id, senderId: senderUnionId || '' },
       async (replyContent, isEnd = false) => {
         if (!cardId) {
           cardId = await this.genCardMessage(chat_id, question, senderUnionId)
@@ -229,7 +231,7 @@ export class FeishuChannel extends Channel {
 
         try {
           if (replyContent) {
-            allReplyContent += replyContent
+            allReplyContent += replyContent.join('')
             await this.client.cardkit.v1.cardElement.content({
               path: { card_id: cardId, element_id: 'markdown_1' },
               data: { content: allReplyContent, sequence: sequence++ },

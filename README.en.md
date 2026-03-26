@@ -20,15 +20,16 @@ Built with [Bun](https://bun.sh), [Elysia](https://elysiajs.com), and [LangChain
 
 We recommend using Docker Compose for quick deployment, or downloading the [binary file](https://github.com/seepine/manbot/releases) to run directly.
 
-### 1. Copy docker-compose.example.yml
+### 1. Copy configuration files
 
 ```bash
+cp config.example.yml config.yml
 cp docker-compose.example.yml docker-compose.yml
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure config.yml
 
-Edit the `docker-compose.yml` file to configure environment variables.
+Edit the `config.yml` file to configure providers and agents. For detailed configuration, please refer to [Configuration](./docs/config.md).
 
 ### 3. Start Service
 
@@ -38,31 +39,15 @@ docker-compose up -d
 
 Once the service is started, Manbot will run in the background and listen for Feishu messages.
 
-## Environment Variables Configuration
+## Configuration File
 
-> If running as a binary file, create a `.env` file in the same directory as the binary to configure environment variables.
-
-| Variable Name         | Description                                                                 | Default Value                    |
-| --------------------- | --------------------------------------------------------------------------- | ------------------------------- |
-| `WORKSPACE_FOLDER`     | Bot working directory, stores skills, MCP config, and memory                |                                 |
-| `OPENAI_API_KEY`       | OpenAI or compatible API Key                                                | -                               |
-| `OPENAI_BASE_URL`      | LLM API Base URL                                                            | -                               |
-| `OPENAI_MODEL`         | Model name to use                                                           | `gpt-4o`                        |
-| `ANTHROPIC_AUTH_TOKEN` | Anthropic API Key (takes priority when set)                                | -                               |
-| `ANTHROPIC_BASE_URL`   | Anthropic API Base URL                                                      | `https://api.anthropic.com`     |
-| `ANTHROPIC_MODEL`      | Anthropic model name                                                        | `claude-3-5-sonnet-20241022`    |
-| `FEISHU_APP_ID`        | Feishu App ID                                                               | -                               |
-| `FEISHU_APP_SECRET`    | Feishu App Secret                                                           | -                               |
-| `FEISHU_APP_NAME`      | Feishu App Name, used to determine if the app is mentioned in a group       | `Manbot`                        |
-| `TAVILY_API_KEY`       | Tavily API Key, used for Tavily search service                              | -                               |
-| `TERMINAL_ENABLED`     | Whether to enable terminal, enabled means you can execute commands directly | `false`                         |
-| `SHOW_THINKING`        | Whether to display thinking content (Anthropic models only)                   | `false`                         |
+The configuration uses `config.yml` format and supports multiple agents running in parallel. For detailed configuration, please refer to [Configuration Documentation](./docs/config.md).
 
 ## Message Channel Configuration
 
 ### Feishu (Lark)
 
-Manbot supports interacting with users via Feishu (Lark) chat. When configuring environment variables, you need to provide the Feishu app's `App ID`, `App Secret`, and `App Name`.
+Manbot supports interacting with users via Feishu (Lark) chat. Configure the Feishu app's `app-id`, `app-secret`, and `app-name` in `config.yml`.
 For detailed configuration, please refer to [Feishu (Lark) Integration](./docs/feishu.md).
 
 ## User Guide

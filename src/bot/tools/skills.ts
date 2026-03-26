@@ -85,6 +85,7 @@ export const createSkillsTools = (workspace: string) => {
         )
       },
     }),
+
     new DynamicStructuredTool({
       name: 'skills__get_SKILL.md_by_name',
       description:
