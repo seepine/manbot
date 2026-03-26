@@ -1,11 +1,27 @@
+// Base provider configuration
 export interface ProviderConfig {
   type: 'openai' | 'anthropic'
   'base-url'?: string
   'api-key': string
-  model: string
+
   timeout?: number
   temperature?: number
   'top-p'?: number
+
+  'recursion-limit'?: number
+  'auto-tool-discovery'?: boolean
+  'show-thinking'?: boolean
+}
+
+// Agent's provider reference
+export interface AgentProviderConfig {
+  name: string
+  model: string
+
+  timeout?: number
+  temperature?: number
+  'top-p'?: number
+
   'recursion-limit'?: number
   'auto-tool-discovery'?: boolean
   'show-thinking'?: boolean
@@ -22,11 +38,11 @@ export type ChannelConfig = FeishuChannelConfig
 
 export interface AgentConfig {
   'workspace-dir'?: string
-  provider?: Partial<ProviderConfig>
+  provider: AgentProviderConfig
   channel: ChannelConfig
 }
 
 export interface Config {
-  provider: ProviderConfig
+  providers: Record<string, ProviderConfig>
   agents: Record<string, AgentConfig>
 }

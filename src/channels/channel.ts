@@ -1,20 +1,28 @@
 import type { ChannelConfig } from '../config/types.ts'
 import { FeishuChannel } from './feishu.ts'
 
+export type MessageContent = string
 export interface MessageHandler {
-  (data: {
-    chatId: string
-    content: string
-    senderUnionId: string
-  }, reply: (content: string, isEnd?: boolean) => void | Promise<void>): void | Promise<void>
+  (
+    content: Array<MessageContent>,
+    info: {
+      chatId: string
+      groupId?: string
+      senderId: string
+    },
+    reply: (content: Array<MessageContent>, isEnd?: boolean) => void | Promise<void>,
+  ): void | Promise<void>
 }
 
 export abstract class Channel {
   constructor(protected config: ChannelConfig) {}
-
   abstract readonly type: string
   abstract start(handler: MessageHandler): Promise<void>
-  abstract sendMessage(chatId: string, content: string, atUserUnionId?: string): Promise<void>
+  abstract sendMessage(
+    chatId: string,
+    content: Array<MessageContent>,
+    atUserUnionId?: string,
+  ): Promise<void>
 }
 
 export function createChannel(config: ChannelConfig): Channel {
