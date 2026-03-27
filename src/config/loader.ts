@@ -100,6 +100,17 @@ export async function loadConfig(configPath?: string): Promise<Config> {
         throw new Error(`agent "${name}" 的 channel.app-id 和 channel.app-secret 为必填字段`)
       }
     }
+
+    if (agentConfig['to-agents']) {
+      for (const toAgent of agentConfig['to-agents']) {
+        if (!processed.agents[toAgent]) {
+          throw new Error(`agent "${name}" 的 to-agents "${toAgent}" 不存在于 agents 中`)
+        }
+        if (toAgent === name) {
+          throw new Error(`agent "${name}" 的 to-agents "${toAgent}" 不能是自己`)
+        }
+      }
+    }
   }
   return processed
 }

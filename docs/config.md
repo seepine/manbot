@@ -45,6 +45,9 @@ agents:
       app-id: FEISHU_APP_ID
       app-secret: FEISHU_APP_SECRET
       app-name: manbot
+    # 可选，声明可以向哪些 agent 发送消息
+    to-agents:
+      - secondary-agent
 
   secondary-agent:
     workspace-dir: workspace-secondary
@@ -76,15 +79,15 @@ agent 列表，每个 agent 独立运行。
 
 **agent.provider:**
 
-| 字段                | 类型    | 必填 | 说明                                              |
-| ------------------- | ------- | ---- | ------------------------------------------------- |
-| name                | string  | 是   | 引用的 provider 名称                              |
-| model               | string  | 是   | 模型名称                                          |
-| timeout             | number  | 否   | 请求超时时间（毫秒），默认 120000                 |
-| temperature         | number  | 否   | 温度参数，默认 0.7                                |
-| top-p               | number  | 否   | Top-P 参数，默认 0.9                              |
-| recursion-limit     | number  | 否   | 递归深度限制，默认 100                            |
-| auto-tool-discovery | boolean | 否   | 是否启用 MCP 工具自动发现，默认 false             |
+| 字段                  | 类型    | 必填 | 说明                                              |
+| --------------------- | ------- | ---- | ------------------------------------------------- |
+| name                  | string  | 是   | 引用的 provider 名称                              |
+| model                 | string  | 是   | 模型名称                                          |
+| timeout               | number  | 否   | 请求超时时间（毫秒），默认 120000                 |
+| temperature           | number  | 否   | 温度参数，默认 0.7                                |
+| top-p                 | number  | 否   | Top-P 参数，默认 0.9                              |
+| recursion-limit       | number  | 否   | 递归深度限制，默认 100                            |
+| auto-tool-discovery   | boolean | 否   | 是否启用 MCP 工具自动发现，默认 false             |
 | show-thinking-message | boolean | 否   | 是否显示思考内容（仅 Anthropic 模型），默认 false |
 
 **agent.channel:**

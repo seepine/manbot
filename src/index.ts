@@ -7,17 +7,17 @@ let agents: Agent[] = []
 const loadAgent = async () => {
   agents = []
   const config = await loadConfig()
-  const agentNames = Object.keys(config.agents)
   for (const [agentName, agentConfig] of Object.entries(config.agents)) {
     const provider = config.providers[agentConfig.provider.name]
     if (!provider) {
       throw new Error(`agent [${agentName}] 的provider.name不存在`)
     }
+    const toAgents = agentConfig['to-agents'] ?? []
     const agent = new Agent({
       name: agentName,
       provider: provider,
       config: agentConfig,
-      otherAgents: agentNames.filter((item) => item !== agentName),
+      toAgents,
     })
     agents.push(agent)
   }
