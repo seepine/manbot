@@ -21,7 +21,9 @@ const loadAgent = async () => {
     })
     agents.push(agent)
   }
-  await Promise.all(agents.map((agent) => agent.start()))
+  for (const agent of agents) {
+    await agent.start()
+  }
   logger.info(`manbot 启动成功，共 ${agents.length} 个 agent`)
 }
 
@@ -31,7 +33,9 @@ new Elysia({
   },
 })
   .get('/restart', async () => {
-    await Promise.all(agents.map((agent) => agent.stop()))
+    for (const agent of agents) {
+      await agent.stop()
+    }
     await loadAgent()
     return 'ok'
   })
@@ -44,7 +48,9 @@ new Elysia({
   })
   .onStop(async () => {
     try {
-      await Promise.all(agents.map((agent) => agent.stop()))
+      for (const agent of agents) {
+        await agent.stop()
+      }
     } catch (e) {
       logger.error(e, 'app stop error')
     }
