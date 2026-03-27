@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.2](https://github.com/seepine/manbot/compare/v0.4.1...v0.4.2) (2026-03-27)
+
+
+### Features
+
+* **agent:** add to-agents config for controlling inter-agent communication ([4af6edc](https://github.com/seepine/manbot/commit/4af6edc3c939a1a20589c43bfc971340f91d3f09))
+
+
+### Bug Fixes
+
+* **agent:** change agent lifecycle from parallel to sequential execution ([c9dcce1](https://github.com/seepine/manbot/commit/c9dcce1b101629e44ecaf4674939bf31b542cd6a))
+
 ## [0.4.1](https://github.com/seepine/manbot/compare/v0.4.0...v0.4.1) (2026-03-27)
 
 ## [0.4.0](https://github.com/seepine/manbot/compare/v0.3.15...v0.4.0) (2026-03-27)
