@@ -36,5 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /workspace-*
 .data
 .manbot
+/manbot_data
 config.yml
 config.yaml
