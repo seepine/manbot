@@ -7,4 +7,4 @@ services:
       dockerfile: Dockerfile
     image: manbot:latest
     volumes:
-      - ./.data:/data
+      - ./manbot_data:/data
