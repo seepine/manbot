@@ -90,7 +90,9 @@ export async function loadConfig(configPath?: string): Promise<Config> {
       throw new Error(`agent "${name}" 的 provider.name 和 provider.model 为必填字段`)
     }
     if (!processed.providers[agentConfig.provider.name]) {
-      throw new Error(`agent "${name}" 的 provider.name "${agentConfig.provider.name}" 不存在于 providers 中`)
+      throw new Error(
+        `agent "${name}" 的 provider.name "${agentConfig.provider.name}" 不存在于 providers 中`,
+      )
     }
 
     if (agentConfig.channel.type === 'feishu') {
