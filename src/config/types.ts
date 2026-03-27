@@ -42,6 +42,7 @@ export interface AgentConfig {
   'workspace-dir'?: string
   provider: AgentProviderConfig
   channel: ChannelConfig
+  'to-agents'?: string[]
 }
 
 export interface Config {

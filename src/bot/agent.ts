@@ -38,7 +38,7 @@ export class Agent {
       name: string
       provider: ProviderConfig
       config: AgentConfig
-      otherAgents: string[]
+      toAgents: string[]
     },
   ) {
     this.provider = {
@@ -212,8 +212,18 @@ export class Agent {
             meta.senderId,
           ),
           new DynamicStructuredTool({
+            name: 'agent-team__get-can-send-message-agents',
+            description:
+              '获取所有可接收消息的 agent 列表。用于查看你有权向哪些 agent 联系或指派任务。',
+            schema: z.object({}),
+            func: async () => {
+              return 'to-agents:\n' + this.opts.toAgents.map((item) => `-${item}`).join('\n')
+            },
+          }),
+          new DynamicStructuredTool({
             name: 'agent-team__send-message',
-            description: '',
+            description:
+              '向指定 agent 发送消息或指派任务。用于多 agent 协作场景，如委托任务、请求信息、通知进展。',
             schema: z.object({
               agentName: z.string().describe('agent name'),
               message: z.string().describe('send message to agent'),
@@ -222,7 +232,7 @@ export class Agent {
               if (meta.isGroup) {
                 return `发送消息失败，请确保在群聊中并且对方也在群中`
               }
-              if (!this.opts.otherAgents.includes(args.agentName)) {
+              if (!this.opts.toAgents.includes(args.agentName)) {
                 return `发送消息失败，找不到名为 ${args.agentName} 的 agent`
               }
               const otherAgentDir = join(process.cwd(), '.manbot', 'agents', args.agentName)
@@ -234,12 +244,7 @@ export class Agent {
           }),
           new DynamicStructuredTool({
             name: 'systemtool__send_file_to_user',
-            description: `仅当用户明确且直接地请求"发给我/发送给我/发给我这个文件/请发送"时使用此工具。
-
-  不要在以下情况使用：
-  - 用户只是发送了文件给你
-  - 用户只是在讨论文件内容
-  - 没有明确要求你发送文件`,
+            description: `将文件或图片发送给用户。**仅在用户明确要求"发给我/发送给我/把这个文件发给我"时使用**。不适用于：用户只是上传了文件、讨论文件内容、或没有明确发送请求的场景。`,
             schema: z.object({
               fileType: z.enum(['image', 'file']).describe('文件类型'),
               filePath: z.string().describe('文件完整路径，例如 /root/workspace/a.txt'),
