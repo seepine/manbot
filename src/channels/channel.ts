@@ -1,33 +1,40 @@
 import type { ChannelConfig } from '../config/types.ts'
-import { FeishuChannel } from './feishu.ts'
 
-export type MessageContent = string
+export type MessageContent =
+  | {
+      type: 'text'
+      content: string
+    }
+  | {
+      type: 'image' | 'file'
+      filePath: string
+      error?: string
+    }
+
+export type MessageMeta = {
+  chatId: string
+  senderId: string
+  messageId: string
+  isGroup: boolean
+}
+
 export interface MessageHandler {
-  (
-    content: Array<MessageContent>,
-    info: {
-      chatId: string
-      groupId?: string
-      senderId: string
-    },
-    reply: (content: Array<MessageContent>, isEnd?: boolean) => void | Promise<void>,
-  ): void | Promise<void>
+  (content: Array<MessageContent>, meta: MessageMeta): void | Promise<void>
 }
 
 export abstract class Channel {
-  constructor(protected config: ChannelConfig) {}
+  constructor(
+    protected fileDir: string,
+    protected config: ChannelConfig,
+  ) {}
   abstract readonly type: string
   abstract start(handler: MessageHandler): Promise<void>
-  abstract sendMessage(
+  abstract stop(): Promise<void>
+  abstract createChat(
     chatId: string,
-    content: Array<MessageContent>,
-    atUserUnionId?: string,
-  ): Promise<void>
-}
-
-export function createChannel(config: ChannelConfig): Channel {
-  if (config.type === 'feishu') {
-    return new FeishuChannel(config)
-  }
-  throw new Error(`Unsupported channel type: ${config.type}`)
+    question?: string,
+  ): Promise<{
+    send: (message: MessageContent) => Promise<void>
+    close: () => Promise<void>
+  }>
 }

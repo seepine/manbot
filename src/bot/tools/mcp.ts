@@ -1,7 +1,7 @@
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import { MultiServerMCPClient, type ClientConfig } from '@langchain/mcp-adapters'
-import { join } from 'node:path'
 import { httpProxyEnv } from '../utils/env'
+import { logger } from '../../log.ts'
 
 type McpServerConfig = ClientConfig['mcpServers']
 
@@ -65,12 +65,18 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
     onConnectionError: 'throw',
     mcpServers,
   })
-  const tools = await client.getTools()
+  const tools = (await client.getTools()).filter(
+    // 筛选掉，避免出错
+    (item) => item.name !== 'filesystem__read_media_file',
+  )
 
-  console.log(`[内置MCP] 已加载 ${tools.length} 个工具`)
+  logger.info(`[内置MCP] 已加载 ${tools.length} 个工具`)
   for (const tool of tools) {
-    console.log(`  - ${tool.name}: ${tool.description?.slice(0, 60) ?? '(无描述)'}`)
+    logger.info(`  - ${tool.name}: ${tool.description?.slice(0, 60) ?? '(无描述)'}`)
   }
 
-  return { tools: tools as StructuredToolInterface[], client }
+  return {
+    tools: tools as StructuredToolInterface[],
+    client,
+  }
 }

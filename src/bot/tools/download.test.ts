@@ -1,6 +1,7 @@
 // 创建 bun test 测试下载工具
 import { test, expect } from 'bun:test'
 import { handleDownload } from './download'
+import { logger } from '../../log.ts'
 
 test('downloadFile', async () => {
   const workspaceFolder = './.data/workspace'
@@ -15,5 +16,5 @@ test('downloadFile', async () => {
     path,
   })
   expect(meta.filePath).not.toBe('')
-  console.log(meta)
+  logger.info(meta)
 }, 0)

@@ -67,6 +67,22 @@ export const initDir = async (workspace: string) => {
   }
 }
 
+export const loadSkillPrompt = async (workspace: string) => {
+  // 设置 disable-model-invocation 为 true 可防止代理自动加载此技能
+  const skills = (await loadSkills(workspace)).filter(
+    (item) => !item.meta.includes('disable-model-invocation: true'),
+  )
+  return (
+    `## 可用技能如下\n` +
+    skills
+      .map((item) => {
+        return `- name: ${item.name}\n  \`\`\`yaml\n${item.meta}\n\`\`\``
+      })
+      .join('\n\n') +
+    `\n`
+  )
+}
+
 export const createSkillsTools = (workspace: string) => {
   return [
     new DynamicStructuredTool({

@@ -5,7 +5,7 @@ RUN bun install
 COPY ./src ./src
 RUN bun run build -j
 
-FROM oven/bun:1.3-debian
+FROM oven/bun:1.3-debian AS base
 ENV TZ=Asia/Shanghai
 RUN apt-get update && apt-get install -y \
     curl \
@@ -13,13 +13,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+FROM base
 # Create user
 RUN useradd -u 1200 -m -d /data -s /bin/bash manbot
 USER manbot
-
 WORKDIR /data
-ENV WORKSPACE_FOLDER=/data/workspace \
-    TERMINAL_ALLOWED=true
 
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000

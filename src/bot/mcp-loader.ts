@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import MCP_SCHEMA from './assets/mcp.schema.json.txt' with { type: 'txt', embed: 'true' }
 import MCP_CONFIG from './assets/mcp.json.txt' with { type: 'txt', embed: 'true' }
 import { httpProxyEnv } from './utils/env'
+import { logger } from '../log.ts'
 
 /**
  * MCP 服务传输层配置。
@@ -125,7 +126,7 @@ const parseMcpConfig = (fileText: string, workspace: string): McpsConfig | null 
   try {
     return JSON.parse(fileText.replaceAll('${workspaceFolder}', workspace))
   } catch (error) {
-    console.error('[MCP] mcp.json 格式错误，请检查文件内容', error)
+    logger.error({ err: error }, '[MCP] mcp.json 格式错误，请检查文件内容')
     return null
   }
 }
@@ -150,8 +151,8 @@ const normalizeMcpServers = (config: McpsConfig): ClientConfig['mcpServers'] => 
     if (server.type === 'stdio' || (server.type === undefined && server.command)) {
       const args = Array.isArray(server.args) ? server.args : []
       if (args.includes('@modelcontextprotocol/server-filesystem')) {
-        console.warn(
-          '@modelcontextprotocol/server-filesystem 已内置在系统中，无需在mcp.json中重复配置，此配置将不会生效',
+        logger.warn(
+          '[MCP] @modelcontextprotocol/server-filesystem 已内置在系统中，无需在mcp.json中重复配置，此配置将不会生效',
         )
         continue
       }
@@ -173,7 +174,7 @@ const normalizeMcpServers = (config: McpsConfig): ClientConfig['mcpServers'] => 
       continue
     }
 
-    console.warn(`[MCP] ${name} 的配置格式不正确，跳过该 MCP 服务`)
+    logger.warn(`[MCP] ${name} 的配置格式不正确，跳过该 MCP 服务`)
   }
 
   return mcpServers
@@ -197,7 +198,7 @@ export const mcpToolsHasChanged = async (workspace: string): Promise<boolean> =>
  * 从 mcps.json 读取 MCP 服务配置，启动所有 MCP 服务并返回工具列表和 client 实例
  */
 export const loadMcpTools = async (workspace: string): Promise<McpToolsResult> => {
-  console.log('[mcp] mcp 加载中，请稍后...')
+  logger.info('[mcp] mcp 加载中，请稍后...')
   const file = await ensureMcpConfigExists(workspace)
   const fileText = await file.text()
   const config = parseMcpConfig(fileText, workspace)
@@ -218,9 +219,9 @@ export const loadMcpTools = async (workspace: string): Promise<McpToolsResult> =
   })
 
   const tools = await client.getTools()
-  console.log(`[MCP] 已加载 ${tools.length} 个工具`)
+  logger.info(`[MCP] 已加载 ${tools.length} 个工具`)
   for (const tool of tools) {
-    console.log(`  - ${tool.name}: ${tool.description?.slice(0, 60) ?? '(无描述)'}`)
+    logger.info(`  - ${tool.name}: ${tool.description?.slice(0, 60).trim() ?? '(无描述)'}`)
   }
   return { tools: tools as StructuredToolInterface[], client }
 }

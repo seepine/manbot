@@ -1,79 +1,100 @@
-import { createAgent, createMiddleware, ReactAgent, type DynamicStructuredTool } from 'langchain'
+import { createAgent, createMiddleware, ReactAgent, DynamicStructuredTool } from 'langchain'
 import { ChatOpenAICompletions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
-import { existsSync, mkdirSync } from 'node:fs'
-import { Channel, type MessageContent } from '../channels/channel.ts'
+import { mkdirSync } from 'node:fs'
+import { Channel, type MessageContent, type MessageMeta } from '../channels/channel.ts'
+import { createChannel } from '../channels/factory.ts'
 import type { ProviderConfig, AgentConfig, AgentProviderConfig } from '../config/types.ts'
 import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
-import { createTaskTool, startTasksProcess } from './task-manager.ts'
 import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
-import { readHistoryMessages, saveHistoryMessages } from './utils/history.ts'
 import { ToolRegistry } from './tool-registry.ts'
-import { createSkillsTools } from './tools/skills.ts'
+import { createSkillsTools, loadSkillPrompt } from './tools/skills.ts'
+import { z } from 'zod'
+import { join } from 'node:path'
+import { readMessages, saveMessages } from './utils/message.ts'
+import { logger } from '../log.ts'
+import { TaskManager } from './task-manager.ts'
+import { EasyAgent } from '../langchain/easy-agent.ts'
 import { createSubAgentTools } from './tools/sub-agent.ts'
+import { FileMemory, type Memory } from '../langchain/memory.ts'
 
 export class Agent {
   private innerMcpTools: McpToolsResult | null = null
   private workspace: string
+  private agentDir: string
   private provider: ProviderConfig & AgentProviderConfig
+  private channel: Channel
+  private heartbeat: NodeJS.Timeout
+  private taskManager: TaskManager
+  private isStarting = false
   private isRunning = false
+  private isStopping = false
 
   constructor(
     private opts: {
       name: string
       provider: ProviderConfig
       config: AgentConfig
-      channel: Channel
+      otherAgents: string[]
     },
   ) {
     this.provider = {
       ...opts.provider,
       ...opts.config.provider,
     }
-    this.workspace = opts.config['workspace-dir'] || `workspace-${this.opts.name}`
-    if (!existsSync(this.workspace)) {
-      mkdirSync(this.workspace, { recursive: true })
-    }
-    // startTasksProcess(opts.workspace, opts.channelConfig)
+    const workspaceDir = opts.config['workspace-dir'] || `workspace-${this.opts.name}`
+    this.workspace = workspaceDir.startsWith('/') ? workspaceDir : join(process.cwd(), workspaceDir)
+    this.agentDir = join(process.cwd(), '.manbot', 'agents', opts.name)
+
+    mkdirSync(this.workspace, { recursive: true })
+    mkdirSync(this.agentDir, { recursive: true })
+    this.channel = createChannel(this.workspace, opts.name, opts.config.channel)
+    this.taskManager = new TaskManager(this.agentDir, opts.config.channel)
+    this.heartbeat = setInterval(() => this.handleHeartbeat(), 3000)
   }
 
-  private createModel() {
-    const provider = this.provider
-    if (provider.type === 'anthropic') {
-      return new ChatAnthropic({
-        apiKey: provider['api-key'],
-        anthropicApiUrl: provider['base-url'] || 'https://api.anthropic.com',
-        model: provider.model,
-        streaming: true,
-        temperature: provider.temperature ?? 0.7,
-        topP: provider['top-p'] ?? 0.9,
-      })
+  async start(): Promise<void> {
+    if (this.isStarting) {
+      return
     }
-    return new ChatOpenAICompletions({
-      apiKey: provider['api-key'],
-      configuration: { baseURL: provider['base-url'] },
-      modelName: provider.model,
-      streaming: true,
-      temperature: provider.temperature ?? 0.7,
-      topP: provider['top-p'] ?? 0.9,
-      timeout: provider.timeout ?? 120000,
-    })
+    this.innerMcpTools = await createInnerMcpTools(this.workspace)
+    await this.channel.start((content, info) => this.receiveMessage(content, info))
+    this.taskManager.start(() => this.createAgent())
+    this.isStarting = true
+    logger.info(`agent "${this.opts.name}" started`)
+  }
+
+  async stop(): Promise<void> {
+    if (this.isStopping) return
+    this.isStopping = true
+    clearInterval(this.heartbeat)
+    try {
+      await this.channel.stop()
+      this.taskManager.stop()
+      await this.innerMcpTools?.client?.close()
+      logger.info(`[agent] "${this.opts.name}" stopped`)
+    } catch (e) {
+      logger.error(e, '[agent] agent stop error')
+    }
   }
 
   async createAgent(
     opts: {
       additionalTools?: DynamicStructuredTool[]
       additionalSystemPrompt?: string
+      memory?: Memory
     } = {},
-  ): Promise<ReactAgent> {
+  ): Promise<EasyAgent> {
     const workspace = this.workspace
     const provider = this.provider
 
-    const innerMcpTools = await createInnerMcpTools(workspace)
-    const [prompt] = await Promise.all([loadPromptTools(workspace)])
+    const [prompt, skillPrompt] = await Promise.all([
+      loadPromptTools(workspace),
+      loadSkillPrompt(workspace),
+    ])
 
     const tools = [
       ...systemInnerTools,
@@ -91,23 +112,36 @@ export class Agent {
       tools.push(...((mcpTools?.tools ?? []) as DynamicStructuredTool[]))
     }
 
-    // Add additional
-    const { additionalTools = [], additionalSystemPrompt = '' } = opts
-
     // Add additional tools
+    const { additionalTools = [], additionalSystemPrompt = '' } = opts
     tools.push(...additionalTools)
-    const systemPrompt = additionalSystemPrompt ? `${prompt}\n\n${additionalSystemPrompt}` : prompt
+    tools.push(
+      ...createSubAgentTools((prompt) => {
+        return new EasyAgent({
+          provider: this.provider,
+          tools: tools,
+          systemPrompt: prompt,
+        })
+      }),
+    )
 
-    return createAgent({
-      model: this.createModel(),
+    // Add system prompt
+    let systemPrompt = `${prompt}\n\n${skillPrompt}`
+    if (additionalSystemPrompt) {
+      systemPrompt += '\n\n' + additionalSystemPrompt
+    }
+
+    return new EasyAgent({
+      provider: this.provider,
       tools: tools,
       systemPrompt: systemPrompt,
+      memory: opts.memory,
       middleware: [
         createMiddleware({
           name: 'clear_tools_state_after_agent',
           async afterAgent() {
             try {
-              await innerMcpTools?.client?.close()
+              await mcpTools?.client?.close()
             } catch {}
           },
         }),
@@ -123,48 +157,48 @@ export class Agent {
     }
   }
 
-  async start(): Promise<void> {
-    if (this.isRunning) {
-      return
+  private formatMessageContent(item: MessageContent): string {
+    if (item.type === 'text') {
+      return item.content
     }
-    await this.opts.channel.start((content, info, reply) =>
-      this.handleMessage(content, info, reply),
-    )
-    this.isRunning = true
-    console.log(`agent "${this.opts.name}" started`)
+    return [
+      `${item.type === 'image' ? '附加图片' : '附加文件'}：${item.filePath}`,
+      item.error ? `文件保存时出错: ${item.error}` : '',
+    ]
+      .join('\n\n')
+      .trimEnd()
   }
 
-  private queueContent: {
-    [chatId: string]: Array<MessageContent>
-  } = {}
-  private queueRunningState: {
-    [chatId: string]: boolean
-  } = {}
+  private messageToUserContent(item: MessageContent): { role: 'user'; content: string } {
+    if (item.type === 'text') {
+      return { role: 'user', content: item.content }
+    }
+    return { role: 'user', content: this.formatMessageContent(item) }
+  }
 
-  private async handleMessage(
-    content: Array<MessageContent>,
-    info: {
-      chatId: string
-      groupId?: string
-      senderId: string
-    },
-    reply: (content: Array<MessageContent>, isEnd?: boolean) => void | Promise<void>,
-  ): Promise<void> {
-    if (this.queueRunningState[info.chatId]) {
-      this.queueContent[info.chatId] = {
-        ...this.queueContent[info.chatId],
-        ...content,
-      }
+  private async receiveMessage(content: Array<MessageContent>, meta: MessageMeta) {
+    logger.info({ meta, content }, '[agent] 收到消息')
+    await saveMessages(this.agentDir, meta, content)
+  }
+
+  private async handleHeartbeat(): Promise<void> {
+    if (!this.isStarting || this.isRunning) {
       return
     }
-    const allContent = [...(this.queueContent[info.chatId] || []), ...content]
-    this.queueContent[info.chatId] = []
-    this.queueRunningState[info.chatId] = true
-
-    const workspace = this.workspace
+    this.isRunning = true
+    const meta = await readMessages(this.agentDir)
+    if (!meta) {
+      this.isRunning = false
+      return
+    }
+    if (meta.messages.length <= 0) {
+      this.isRunning = false
+      return
+    }
+    const allContent = meta.messages
     const provider = this.provider
-    const history = await readHistoryMessages(workspace, info.chatId)
-    const showThinkingEnabled = provider['show-thinking'] ?? false
+    const showThinkingEnabled = provider['show-thinking-message'] ?? false
+    const showToolEnabled = provider['show-tool-message'] ?? false
 
     const queue: { type: 'thinking' | 'text' | 'tool_start' | 'tool_end'; content?: string }[] = []
     let isStreamEnded = false
@@ -172,66 +206,99 @@ export class Agent {
     const streamProcess = new Promise<void>(async (res) => {
       try {
         const additionalTools = [
-          ...createSubAgentTools(),
-          ...createTaskTool(this.opts.channel.type as 'feishu', info.chatId, info.senderId),
+          ...this.taskManager.createTools(
+            this.channel.type as 'feishu',
+            meta.chatId,
+            meta.senderId,
+          ),
+          new DynamicStructuredTool({
+            name: 'agent-team__send-message',
+            description: '',
+            schema: z.object({
+              agentName: z.string().describe('agent name'),
+              message: z.string().describe('send message to agent'),
+            }),
+            func: async (args) => {
+              if (meta.isGroup) {
+                return `发送消息失败，请确保在群聊中并且对方也在群中`
+              }
+              if (!this.opts.otherAgents.includes(args.agentName)) {
+                return `发送消息失败，找不到名为 ${args.agentName} 的 agent`
+              }
+              const otherAgentDir = join(process.cwd(), '.manbot', 'agents', args.agentName)
+              await saveMessages(otherAgentDir, meta, [
+                { type: 'text', content: `${args.message}` },
+              ])
+              return `发送消息给 ${args.agentName} 成功`
+            },
+          }),
+          new DynamicStructuredTool({
+            name: 'systemtool__send_file_to_user',
+            description: `仅当用户明确且直接地请求"发给我/发送给我/发给我这个文件/请发送"时使用此工具。
+
+  不要在以下情况使用：
+  - 用户只是发送了文件给你
+  - 用户只是在讨论文件内容
+  - 没有明确要求你发送文件`,
+            schema: z.object({
+              fileType: z.enum(['image', 'file']).describe('文件类型'),
+              filePath: z.string().describe('文件完整路径，例如 /root/workspace/a.txt'),
+            }),
+            func: async (args) => {
+              try {
+                if (!(await Bun.file(args.filePath).exists())) {
+                  return `Send file fail: 文件不存在，请确保文件是完整路径，而不是相对路径或只有一个文件名称`
+                }
+                const chat = await this.channel.createChat(meta.chatId)
+                await chat.send({
+                  type: args.fileType,
+                  filePath: args.filePath,
+                })
+                await chat.close()
+                return `Send file success.`
+              } catch (e: any) {
+                logger.error({ error: e }, '[agent] 文件发送失败')
+                return `Send file fail: ${e.message || e}`
+              }
+            },
+          }),
         ]
 
         const agent = await this.createAgent({
           additionalTools,
+          // 正常对话，需要有历史窗口
+          memory: new FileMemory(meta.chatId, this.agentDir),
         })
 
-        const stream = agent.streamEvents(
-          {
-            messages: [
-              ...history,
-              // 单次处理多条数据
-              ...allContent.map((item) => {
-                return { role: 'user', content: item }
-              }),
-            ],
-          },
-          { version: 'v2', recursionLimit: provider['recursion-limit'] ?? 100 },
-        )
-
         let isThinking = false
-        for await (const event of stream) {
-          if (event.event === 'on_chat_model_stream') {
-            const chunk = event.data?.chunk
-            const content = chunk?.content
-            if (typeof content === 'string') {
-              queue.push({ type: 'text', content })
-            } else if (provider.type === 'anthropic' && Array.isArray(content)) {
-              for (const item of content) {
-                if (item.type === 'thinking') {
-                  if (!isThinking) {
-                    isThinking = true
-                    queue.push({ type: 'thinking', content: '\n> [思考中...]\n\n' })
-                    if (showThinkingEnabled) queue.push({ type: 'thinking', content: '> ' })
-                  }
-                  if (showThinkingEnabled)
-                    queue.push({ type: 'thinking', content: item.thinking || '' })
-                } else if (item.type === 'text') {
-                  if (isThinking) {
-                    queue.push({ type: 'thinking', content: '\n\n' })
-                    isThinking = false
-                  }
-                  if (typeof item.text === 'string')
-                    queue.push({ type: 'text', content: item.text })
-                }
-              }
+        for await (const chunk of agent.invoke([
+          ...allContent.map((item) => this.messageToUserContent(item)),
+        ])) {
+          if (chunk.type === 'text') {
+            if (isThinking) {
+              queue.push({ type: 'thinking', content: '\n\n' })
+              isThinking = false
             }
-          } else if (event.event === 'on_tool_start') {
-            queue.push({ type: 'tool_start', content: `\n> [调用工具: ${event.name}]\n` })
+            queue.push({ type: 'text', content: chunk.content })
+          } else if (chunk.type === 'thinking') {
+            if (!isThinking) {
+              isThinking = true
+              queue.push({ type: 'thinking', content: '\n> [思考中...]\n\n' })
+              queue.push({ type: 'thinking', content: '> ' })
+            }
+            queue.push({ type: 'thinking', content: chunk.content })
+          } else if (chunk.type === 'tool_start') {
+            queue.push({ type: 'tool_start', content: `\n> [调用工具: ${chunk.name}]\n` })
             queue.push({
               type: 'tool_start',
-              content: `> ${this.stringifyToolInput(event.data?.input ?? event.data ?? {})}\n\n`,
+              content: `> ${this.stringifyToolInput(chunk.arguments)}\n\n`,
             })
-          } else if (event.event === 'on_tool_end') {
-            queue.push({ type: 'tool_end', content: `\n> [工具 ${event.name} 返回完毕]\n\n` })
+          } else if (chunk.type === 'tool_end') {
+            queue.push({ type: 'tool_end', content: `\n> [工具 ${chunk.name} 返回完毕]\n\n` })
           }
         }
       } catch (err) {
-        console.error(err)
+        logger.error(err, '[agent] agent.invoke 出错')
         queue.push({
           type: 'text',
           content: '\n[错误]' + (err instanceof Error ? err.message : err),
@@ -242,8 +309,10 @@ export class Agent {
       }
     }).then()
 
-    let fullContent = ''
+    const userMessage = allContent.map((item) => this.formatMessageContent(item)).join('\n\n') || ''
+
     let waitCount = 1
+    const chat = await this.channel.createChat(meta.chatId, userMessage)
     while (!isStreamEnded || queue.length > 0) {
       if (queue.length === 0) {
         await Bun.sleep(waitCount * 50)
@@ -253,27 +322,32 @@ export class Agent {
       waitCount = 1
       const popMessage = queue.splice(0, queue.length)
       if (popMessage.length > 0) {
-        const sendMsg = popMessage.map((item) => item.content).join('')
-        await reply([sendMsg])
-        const usefulContent = popMessage
-          .filter((item) => item.type === 'text')
+        const sendMsg = popMessage
+          .filter((item) => {
+            if (item.type === 'text') {
+              return true
+            }
+            if (item.type === 'thinking') {
+              return showThinkingEnabled
+            }
+            if (item.type === 'tool_start' || item.type === 'tool_end') {
+              return showToolEnabled
+            }
+            return false
+          })
           .map((item) => item.content)
           .join('')
-        fullContent += usefulContent || ''
+        await chat.send({ type: 'text', content: sendMsg })
       }
     }
     try {
       await streamProcess
-      await reply([''], true)
-      if (fullContent) {
-        await saveHistoryMessages(workspace, info.chatId, [
-          { role: 'user', content: content[0] ?? '' },
-          { role: 'assistant', content: fullContent },
-        ])
-      }
+      await chat.close()
     } catch (e) {
+      logger.error({ err: e }, '[agent] process and save history')
     } finally {
-      this.queueRunningState[info.chatId] = false
+      saveMessages(this.agentDir, meta, [], allContent.length)
+      this.isRunning = false
     }
   }
 }
