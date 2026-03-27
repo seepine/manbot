@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.0](https://github.com/seepine/manbot/compare/v0.3.15...v0.4.0) (2026-03-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** config.yml structure changed from `provider:` to `providers:` map format
+
+* **config:** migrate to multi-provider architecture with named providers ([20dfd60](https://github.com/seepine/manbot/commit/20dfd6084f6233a097625fd6217cc8015af58e5a))
+
+
+### Features
+
+* **agent:** create Agent class with full logic ([0b59b20](https://github.com/seepine/manbot/commit/0b59b2044c756d9c52ec27a675031c77e54b2c64))
+* **channel:** add Channel interface and factory ([3e1a3c5](https://github.com/seepine/manbot/commit/3e1a3c53a06e9fbf2f95702fe3dd77086b18e1f1))
+* **config:** add config loader with env variable resolution ([56f3590](https://github.com/seepine/manbot/commit/56f3590881bf32003e6ebd7bc35b0a34d21f3ebc))
+* **config:** add configuration types ([23c279c](https://github.com/seepine/manbot/commit/23c279c9d084e9487c8d14e8b8dba6b0df4b7050))
+
+
+### Bug Fixes
+
+* resolve type errors and add buildAgent factory function ([25a45a9](https://github.com/seepine/manbot/commit/25a45a9d9c4676e8afee8cd67e544b0bbf7ff792))
+
 ## [0.3.15](https://github.com/seepine/manbot/compare/v0.3.14...v0.3.15) (2026-03-21)
 
 ## [0.3.14](https://github.com/seepine/manbot/compare/v0.3.13...v0.3.14) (2026-03-21)
