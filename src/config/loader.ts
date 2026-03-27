@@ -1,8 +1,33 @@
-import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import yaml from 'js-yaml'
-import type { Config, ProviderConfig, AgentProviderConfig } from './types.ts'
+import type { Config } from './types.ts'
 
+const CONFIG_EXAMPLE = `
+# 最简配置
+providers:
+  my-provider: # 提供商名称
+    type: openai # 或 anthropic，默认openai
+    base-url:
+    api-key:
+
+agents:
+  # 第一个 agent
+  main:
+    # workspace-dir: workspace-main # 可选，未配置默认 workspace-<agentName>
+    provider:
+      name: my-provider
+      model: minimax-m2.7
+    channel:
+      type: feishu # 目前只支持飞书
+      app-id:
+      app-secret:
+      app-name: # 机器人名称，建议配置，在群聊中会用到
+
+  # 第二个 agent 依次添加
+  # pm:
+  #   provider:
+  #   ...
+`
 function resolveEnvVariables(value: string): string {
   return value.replace(/\$\{(\w+)\}/g, (_, envVar) => process.env[envVar] || '')
 }
@@ -36,7 +61,9 @@ const getConfigFile = async (configPath?: string) => {
       return file
     }
   }
-  throw new Error('config.yml 文件不存在')
+  const file = Bun.file(paths[0]!)
+  await file.write(CONFIG_EXAMPLE)
+  return file
 }
 
 export async function loadConfig(configPath?: string): Promise<Config> {
@@ -61,6 +88,9 @@ export async function loadConfig(configPath?: string): Promise<Config> {
   for (const [name, agentConfig] of Object.entries(processed.agents)) {
     if (!agentConfig.provider?.name || !agentConfig.provider?.model) {
       throw new Error(`agent "${name}" 的 provider.name 和 provider.model 为必填字段`)
+    }
+    if (!processed.providers[agentConfig.provider.name]) {
+      throw new Error(`agent "${name}" 的 provider.name "${agentConfig.provider.name}" 不存在于 providers 中`)
     }
 
     if (agentConfig.channel.type === 'feishu') {

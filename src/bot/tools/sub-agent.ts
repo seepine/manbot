@@ -1,7 +1,8 @@
 import { DynamicStructuredTool } from 'langchain'
 import { z } from 'zod'
-import { buildAgent } from '../../bot/build-agent'
 import { randomUUIDv7 } from 'bun'
+import { EasyAgent, type Provider } from '../../langchain/easy-agent'
+import type { ClientTool, ServerTool } from '@langchain/core/tools'
 
 interface SubAgentTask {
   status: 'pending' | 'completed' | 'failed'
@@ -27,7 +28,9 @@ const cleanupTasks = () => {
  * 创建子代理工具集
  * @returns 子代理工具数组
  */
-export const createSubAgentTools = () => {
+export const createSubAgentTools = (
+  createAgent: (systemPrompt: string) => EasyAgent,
+): DynamicStructuredTool[] => {
   return [
     new DynamicStructuredTool({
       name: 'launch_sub_agent',
@@ -47,28 +50,23 @@ export const createSubAgentTools = () => {
         tasks.set(taskId, task)
 
         // 异步执行，不阻塞主线程
-        void (async () => {
+        ;(async () => {
           try {
-            const agent = await buildAgent({
-              additionalSystemPrompt: systemPrompt,
-            })
-            let fullContent = ''
-            for await (const chunk of agent.streamEvents({
-              messages: [{ role: 'user', content: userMessage }],
-            })) {
-              if (chunk.event === 'on_chat_model_stream') {
-                fullContent += chunk.data?.chunk?.content ?? ''
-              }
-            }
+            const agent = createAgent(systemPrompt)
+            const { content } = await agent.invokeSync(userMessage)
             task.status = 'completed'
-            task.content = fullContent
+            task.content = content
           } catch (err) {
             task.status = 'failed'
             task.error = err instanceof Error ? err.message : String(err)
           } finally {
             cleanupTasks()
           }
-        })()
+        })().catch((err) => {
+          task.status = 'failed'
+          task.error = err instanceof Error ? err.message : String(err)
+          cleanupTasks()
+        })
 
         return `Sub-agent launched with ID: ${taskId}. Use query_sub_agent to check status and retrieve results.`
       },

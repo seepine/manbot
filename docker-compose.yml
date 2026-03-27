@@ -6,7 +6,5 @@ services:
       context: .
       dockerfile: Dockerfile
     image: manbot:latest
-    env_file:
-      - .env
     volumes:
       - ./.data:/data

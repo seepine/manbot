@@ -10,7 +10,8 @@ export interface ProviderConfig {
 
   'recursion-limit'?: number
   'auto-tool-discovery'?: boolean
-  'show-thinking'?: boolean
+  'show-thinking-message'?: boolean
+  'show-tool-message'?: boolean
 }
 
 // Agent's provider reference
@@ -24,7 +25,8 @@ export interface AgentProviderConfig {
 
   'recursion-limit'?: number
   'auto-tool-discovery'?: boolean
-  'show-thinking'?: boolean
+  'show-thinking-message'?: boolean
+  'show-tool-message'?: boolean
 }
 
 export interface FeishuChannelConfig {

@@ -5,6 +5,7 @@ import { MD5 } from 'bun'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import { mkdir } from 'fs/promises'
+import { logger } from '../../log.ts'
 export const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
@@ -155,7 +156,7 @@ export const handleDownload = async (
       statusResult.status = 'success'
     })
     .catch((error) => {
-      console.error('Download failed:', error)
+      logger.error('Download failed:', error)
       statusResult.status = 'failed'
       statusResult.error = error.message
       return `create download task failed: ${url} -> ${filePath}`

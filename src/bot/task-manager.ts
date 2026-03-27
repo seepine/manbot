@@ -1,12 +1,14 @@
-import { join } from 'path'
+import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
 import { CronExpressionParser } from 'cron-parser'
 import { randomUUID } from 'crypto'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
 import dayjs from 'dayjs'
-import { buildAgent } from './build-agent'
 import { sendFeishuMessage } from '../channels/feishu'
-import type { FeishuChannelConfig } from '../config/types.ts'
+import type { ChannelConfig } from '../config/types.ts'
+import { logger } from '../log.ts'
+import type { EasyAgent } from '../langchain/easy-agent.ts'
 
 export interface Task {
   status: 'pending' | 'ing'
@@ -18,229 +20,212 @@ export interface Task {
   channelConfig: { type: 'feishu'; chatId: string; atUserId: string }
 }
 
-let _workspaceFolder: string | undefined
-let _feishuChannelConfig: FeishuChannelConfig | undefined
-const tasks: Record<string, Task> = {}
-const DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+export class TaskManager {
+  private tasks: Record<string, Task> = {}
+  private agentDir: string
+  private channelConfig: ChannelConfig | undefined
+  private heartbeatInterval: NodeJS.Timeout | null = null
+  private dateFormat = 'YYYY-MM-DD HH:mm:ss'
 
-/**
- * Persist tasks to disk
- */
-const persistenceTasks = async () => {
-  if (!_workspaceFolder) return
-  const file = Bun.file(join(_workspaceFolder, '.agents', 'tasks', 'task.json'))
-  await file.write(JSON.stringify(tasks, null, 2))
-}
-
-/**
- * Add a new task
- */
-const addTask = async (task: Omit<Task, 'status'>) => {
-  const taskId = `task_${randomUUID()}`
-  tasks[taskId] = { ...task, status: 'pending' }
-  await persistenceTasks()
-  return taskId
-}
-
-/**
- * Delete a task
- */
-const delTask = async (taskId: string) => {
-  delete tasks[taskId]
-  await persistenceTasks()
-}
-
-/**
- * Send task execution result
- */
-const sendTaskResult = async (taskId: string, task: Task, content: string) => {
-  if (!_feishuChannelConfig) return
-  const { type, chatId, atUserId } = task.channelConfig
-  if (type === 'feishu') {
-    await sendFeishuMessage(
-      _feishuChannelConfig['app-id'],
-      _feishuChannelConfig['app-secret'],
-      chatId,
-      `> 任务 ${taskId} 执行完毕\n\n${content}`,
-      atUserId || '',
-    )
+  constructor(agentDir: string, channelConfig?: ChannelConfig) {
+    this.agentDir = agentDir
+    this.channelConfig = channelConfig
   }
-}
 
-/**
- * Execute the agent for the task
- */
-const runAgent = async (taskId: string, task: Task) => {
-  const agent = await buildAgent({
-    additionalTools: [
-      ...createTaskTool(
-        task.channelConfig.type,
-        task.channelConfig.chatId,
-        task.channelConfig.atUserId,
-      ),
-    ],
-  })
-
-  const prompt = task.isReminder
-    ? `任务${taskId}执行时间${dayjs().format(DATE_FORMAT)}到了，请立刻提醒我以下内容\n\n${task.content}`
-    : `任务${taskId}执行时间${dayjs().format(DATE_FORMAT)}到了，请立刻执行以下内容\n\n${task.content}`
-
-  const stream = agent.streamEvents(
-    { messages: [{ role: 'user', content: prompt }] },
-    { version: 'v2', recursionLimit: Number(process.env.RECURSION_LIMIT || '50') },
-  )
-
-  let result = ''
-  for await (const event of stream) {
-    if (event.event === 'on_chat_model_stream') {
-      const content = event.data?.chunk?.content
-      if (typeof content === 'string') result += content
-    } else if (event.event === 'on_tool_start') {
-      result += `\n> [调用工具: ${event.name}]\n`
-    } else if (event.event === 'on_tool_end') {
-      result += `\n> [工具 ${event.name} 返回完毕]\n`
-    }
+  private getTaskFilePath(): string {
+    return join(this.agentDir, 'tasks', 'task.json')
   }
-  return result
-}
 
-/**
- * Schedule the next run for a task or remove it
- */
-const scheduleNextRun = (taskId: string, task: Task) => {
-  if (task.cron) {
-    const next = CronExpressionParser.parse(task.cron).next()
-    if (next) {
-      tasks[taskId] = {
-        ...task,
-        status: 'pending',
-        lastRunTime: dayjs().format(DATE_FORMAT),
-        nextRunTime: dayjs(next.toDate()).format(DATE_FORMAT),
+  private async persistenceTasks(): Promise<void> {
+    const dir = join(this.agentDir, 'tasks')
+    mkdirSync(dir, { recursive: true })
+    const file = Bun.file(this.getTaskFilePath())
+    await file.write(JSON.stringify(this.tasks, null, 2))
+  }
+
+  async loadTasks(): Promise<void> {
+    const file = Bun.file(this.getTaskFilePath())
+    if (!(await file.exists())) return
+    try {
+      const cache: Record<string, Task> = (await file.json()) || {}
+      for (const [id, task] of Object.entries(cache)) {
+        if (!this.tasks[id]) {
+          this.tasks[id] = { ...task, status: 'pending' }
+        }
       }
-      return
+    } catch (error) {
+      logger.error({ error }, '[task] Failed to load tasks')
     }
   }
-  delete tasks[taskId]
-}
 
-/**
- * Execute a single task
- */
-const executeTask = async (taskId: string, task: Task) => {
-  try {
-    const result = await runAgent(taskId, task)
-    if (result) {
-      await sendTaskResult(taskId, task, result)
-    }
-  } catch (error) {
-    console.error(`Error executing task ${taskId}:`, error)
-  } finally {
-    scheduleNextRun(taskId, task)
-    await persistenceTasks()
+  async addTask(task: Omit<Task, 'status'>): Promise<string> {
+    const taskId = `task_${randomUUID()}`
+    this.tasks[taskId] = { ...task, status: 'pending' }
+    await this.persistenceTasks()
+    return taskId
   }
-}
 
-/**
- * Load tasks from disk
- */
-const loadTasks = async (workspaceFolder: string) => {
-  const file = Bun.file(join(workspaceFolder, '.agents', 'tasks', 'task.json'))
-  if (!(await file.exists())) return
-  try {
-    const cache: Record<string, Task> = (await file.json()) || {}
-    for (const [id, task] of Object.entries(cache)) {
-      if (!tasks[id]) {
-        tasks[id] = { ...task, status: 'pending' }
+  async delTask(taskId: string): Promise<void> {
+    delete this.tasks[taskId]
+    await this.persistenceTasks()
+  }
+
+  getTask(taskId: string): Task | undefined {
+    return this.tasks[taskId]
+  }
+
+  getAllTasks(): Record<string, Task> {
+    return this.tasks
+  }
+
+  private async sendTaskResult(taskId: string, task: Task, content: string): Promise<void> {
+    if (!this.channelConfig) return
+    const { type, chatId, atUserId } = task.channelConfig
+    if (type === 'feishu') {
+      await sendFeishuMessage(
+        this.channelConfig['app-id'],
+        this.channelConfig['app-secret'],
+        chatId,
+        `> 任务 ${taskId} 执行完毕\n\n${content}`,
+        atUserId || '',
+      )
+    }
+  }
+
+  async runAgent(
+    taskId: string,
+    task: Task,
+    buildAgent: () => Promise<EasyAgent>,
+  ): Promise<string> {
+    const agent = await buildAgent()
+
+    const prompt = task.isReminder
+      ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，请立刻提醒我以下内容\n\n${task.content}`
+      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，请立刻执行以下内容，如果无需答复任何结果，请回复 HEARTBEAT_OK\n\n${task.content}`
+
+    const { content } = await agent.invokeSync(prompt)
+    return content
+  }
+
+  private scheduleNextRun(taskId: string, task: Task): void {
+    if (task.cron) {
+      const next = CronExpressionParser.parse(task.cron).next()
+      if (next) {
+        this.tasks[taskId] = {
+          ...task,
+          status: 'pending',
+          lastRunTime: dayjs().format(this.dateFormat),
+          nextRunTime: dayjs(next.toDate()).format(this.dateFormat),
+        }
+        return
       }
     }
-  } catch (error) {
-    console.error('Failed to load tasks:', error)
+    delete this.tasks[taskId]
+  }
+
+  private async executeTask(
+    taskId: string,
+    task: Task,
+    buildAgent: () => Promise<EasyAgent>,
+  ): Promise<void> {
+    try {
+      const result = await this.runAgent(taskId, task, buildAgent)
+      if (result && !result.includes('HEARTBEAT_OK')) {
+        await this.sendTaskResult(taskId, task, result)
+      }
+    } catch (error) {
+      logger.error({ error, taskId }, '[task] Error executing task')
+    } finally {
+      this.scheduleNextRun(taskId, task)
+      await this.persistenceTasks()
+    }
+  }
+
+  start(buildAgent: () => Promise<EasyAgent>): void {
+    if (this.heartbeatInterval) return
+
+    this.loadTasks().then(() => {
+      this.heartbeatInterval = setInterval(async () => {
+        const now = dayjs()
+        for (const [taskId, task] of Object.entries(this.tasks)) {
+          if (task.status === 'ing') continue
+
+          const nextRunTime = dayjs(task.nextRunTime)
+          if (nextRunTime.isAfter(now)) continue
+
+          // Mark as executing
+          this.tasks[taskId] = { ...task, status: 'ing' }
+          await this.persistenceTasks()
+
+          // Execute asynchronously
+          this.executeTask(taskId, this.tasks[taskId], buildAgent)
+        }
+      }, 30 * 1000)
+    })
+  }
+
+  stop(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+    }
+  }
+
+  createTools(type: 'feishu', chatId: string, senderUnionId: string): DynamicStructuredTool[] {
+    const self = this
+    return [
+      new DynamicStructuredTool({
+        name: 'task-manager__add_task',
+        description: 'Add a task. Requires task content, cron expression, nextRunTime.',
+        schema: z.object({
+          cron: z
+            .string()
+            .describe('Cron expression for task scheduling, 当循环任务时必填')
+            .optional(),
+          isReminder: z.boolean().describe('是否为提醒消息，若任务内容不需要执行或思考，则为true'),
+          nextRunTime: z
+            .string()
+            .describe('Next run time for the task, 格式为 "YYYY-MM-DD HH:mm:ss"'),
+          content: z.string().describe('Content of the task'),
+        }),
+        func: async (args) => {
+          const taskId = await self.addTask({
+            ...args,
+            channelConfig: { type, chatId, atUserId: senderUnionId },
+          })
+          return `Task added successfully with ID: ${taskId}`
+        },
+      }),
+      new DynamicStructuredTool({
+        name: 'task-manager__del_task',
+        description: 'Delete a task. Requires task ID.',
+        schema: z.object({
+          taskId: z.string().describe('ID of the task to delete'),
+        }),
+        func: async ({ taskId }) => {
+          await self.delTask(taskId)
+          return `Task deleted successfully with ID: ${taskId}`
+        },
+      }),
+      new DynamicStructuredTool({
+        name: 'task-manager__get_task',
+        description: 'Get a task. Requires task ID.',
+        schema: z.object({
+          taskId: z.string().describe('ID of the task to get'),
+        }),
+        func: async ({ taskId }) => {
+          const task = self.getTask(taskId)
+          return task ? JSON.stringify(task, null, 2) : `Task not found with ID: ${taskId}`
+        },
+      }),
+      new DynamicStructuredTool({
+        name: 'task-manager__get_all_task',
+        description: 'Get all tasks.',
+        schema: z.object({}),
+        func: async () => JSON.stringify(self.getAllTasks(), null, 2),
+      }),
+    ]
   }
 }
 
-/**
- * Start the task processing loop
- */
-export const startTasksProcess = async (workspaceFolder: string, feishuChannelConfig?: FeishuChannelConfig) => {
-  if (_workspaceFolder) return
-  _workspaceFolder = workspaceFolder
-  _feishuChannelConfig = feishuChannelConfig
-
-  await loadTasks(workspaceFolder)
-
-  // Heartbeat loop
-  setInterval(async () => {
-    const now = dayjs()
-    for (const [taskId, task] of Object.entries(tasks)) {
-      if (task.status === 'ing') continue
-
-      const nextRunTime = dayjs(task.nextRunTime)
-      if (nextRunTime.isAfter(now)) continue
-
-      // Mark as executing
-      tasks[taskId] = { ...task, status: 'ing' }
-      await persistenceTasks()
-
-      // Execute asynchronously
-      executeTask(taskId, tasks[taskId])
-    }
-  }, 30 * 1000)
-}
-
-/**
- * Create tools for task management
- */
-export function createTaskTool(type: 'feishu', chatId: string, senderUnionId: string) {
-  return [
-    new DynamicStructuredTool({
-      name: 'task-manager__add_task',
-      description: 'Add a task. Requires task content, cron expression, nextRunTime, and chat ID.',
-      schema: z.object({
-        cron: z
-          .string()
-          .describe('Cron expression for task scheduling, 当循环任务时必填')
-          .optional(),
-        isReminder: z.boolean().describe('是否为提醒消息，若任务内容不需要执行或思考，则为true'),
-        nextRunTime: z
-          .string()
-          .describe('Next run time for the task, 格式为 "YYYY-MM-DD HH:mm:ss"'),
-        content: z.string().describe('Content of the task'),
-      }),
-      func: async (args) => {
-        const taskId = await addTask({
-          ...args,
-          channelConfig: { type, chatId, atUserId: senderUnionId },
-        })
-        return `Task added successfully with ID: ${taskId}`
-      },
-    }),
-    new DynamicStructuredTool({
-      name: 'task-manager__del_task',
-      description: 'Delete a task. Requires task ID.',
-      schema: z.object({
-        taskId: z.string().describe('ID of the task to delete'),
-      }),
-      func: async ({ taskId }) => {
-        await delTask(taskId)
-        return `Task deleted successfully with ID: ${taskId}`
-      },
-    }),
-    new DynamicStructuredTool({
-      name: 'task-manager__get_task',
-      description: 'Get a task. Requires task ID.',
-      schema: z.object({
-        taskId: z.string().describe('ID of the task to get'),
-      }),
-      func: async ({ taskId }) => {
-        const task = tasks[taskId]
-        return task ? JSON.stringify(task, null, 2) : `Task not found with ID: ${taskId}`
-      },
-    }),
-    new DynamicStructuredTool({
-      name: 'task-manager__get_all_task',
-      description: 'Get all tasks.',
-      schema: z.object({}),
-      func: async () => JSON.stringify(tasks, null, 2),
-    }),
-  ]
-}
+export { TaskManager as default }

@@ -1,4 +1,5 @@
 import { build } from 'bun'
+import { logger } from './log.ts'
 
 /**
  * 构建脚本
@@ -32,5 +33,5 @@ const res = await build({
 
 const cwd = process.cwd()
 res.outputs.forEach((output) => {
-  console.log(output.path.replace(`${cwd}/`, ''), `${(output.size / 1024 / 1024).toFixed(2)} MB`)
+  logger.info(`${output.path.replace(`${cwd}/`, '')} ${(output.size / 1024 / 1024).toFixed(2)} MB`)
 })

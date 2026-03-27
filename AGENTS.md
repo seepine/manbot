@@ -13,11 +13,18 @@
 ### 关键目录结构
 
 - `src/index.ts`: 应用入口点，启动 Elysia 服务器和飞书机器人。
-- `src/bot/`: 逻辑。
-  - `bot.ts`: Agent 的构建和消息处理逻辑。
+- `src/bot/`: 核心逻辑。
+  - `agent.ts`: Agent 的构建和消息处理逻辑。
   - `mcp-loader.ts`: 加载 MCP 工具。
-  - `skills-loader.ts`: 加载 `.agents/skills` 中的技能。
+  - `prompt-loader.ts`: 加载 prompt 模板。
   - `task-manager.ts`: 管理定时任务。
+  - `tool-registry.ts`: MCP 工具注册表。
+  - `tools/`: 工具实现。
+    - `skills.ts`: 技能加载。
+    - `mcp.ts`: MCP 内部工具。
+    - `download.ts`: 下载工具。
+    - `system.ts`: 系统内置工具。
+    - `sub-agent.ts`: 子 agent 工具。
 - `src/channels/`: 沟通的适配器（目前是飞书）。
 
 ## 编码指南
