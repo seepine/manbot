@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import defaultPrompt from './assets/prompt-default.txt' with { type: 'txt', embed: 'true' }
-import memoryPrompt from './assets/memory-default.txt' with { type: 'txt', embed: 'true' }
+import memoryPrompt from './assets/prompt-memory.txt' with { type: 'txt', embed: 'true' }
 import AGENTS from './assets/init/AGENTS.txt' with { type: 'txt', embed: 'true' }
 import BOOTSTRAP from './assets/init/BOOTSTRAP.txt' with { type: 'txt', embed: 'true' }
 import IDENTITY from './assets/init/IDENTITY.txt' with { type: 'txt', embed: 'true' }
