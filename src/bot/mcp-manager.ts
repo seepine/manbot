@@ -182,7 +182,7 @@ export class McpManager {
     return { tools: tools as StructuredToolInterface[], client }
   }
 
-  createTools(): DynamicStructuredTool[] {
+  getManageTools(): DynamicStructuredTool[] {
     const self = this
     return [
       new DynamicStructuredTool({
