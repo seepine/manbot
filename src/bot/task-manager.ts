@@ -26,25 +26,28 @@ export class TaskManager {
   private channelConfig: ChannelConfig | undefined
   private heartbeatInterval: NodeJS.Timeout | null = null
   private dateFormat = 'YYYY-MM-DD HH:mm:ss'
+  private taskFilePath: string
 
   constructor(agentDir: string, channelConfig?: ChannelConfig) {
     this.agentDir = agentDir
     this.channelConfig = channelConfig
+    this.taskFilePath = this.getTaskFilePath()
   }
 
   private getTaskFilePath(): string {
-    return join(this.agentDir, 'tasks', 'task.json')
+    const dir = join(this.agentDir, 'tasks')
+    mkdirSync(dir, { recursive: true })
+    return join(dir, 'task.json')
   }
 
   private async persistenceTasks(): Promise<void> {
-    const dir = join(this.agentDir, 'tasks')
-    mkdirSync(dir, { recursive: true })
-    const file = Bun.file(this.getTaskFilePath())
+    const file = Bun.file(this.taskFilePath)
+    logger.info(this.tasks, '[task] Persisting tasks')
     await file.write(JSON.stringify(this.tasks, null, 2))
   }
 
   async loadTasks(): Promise<void> {
-    const file = Bun.file(this.getTaskFilePath())
+    const file = Bun.file(this.taskFilePath)
     if (!(await file.exists())) return
     try {
       const cache: Record<string, Task> = (await file.json()) || {}
