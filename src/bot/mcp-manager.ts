@@ -22,18 +22,35 @@ export type McpTransport =
       env?: Record<string, string>
       cwd?: string
       restart?: { enabled?: boolean; maxAttempts?: number; delayMs?: number }
+      defaultToolTimeout?: number | undefined
     }
   | {
       type: 'sse'
       url: string
       reconnect?: { enabled?: boolean; maxAttempts?: number; delayMs?: number }
+      defaultToolTimeout?: number | undefined
     }
   | {
       type: 'http'
       url: string
       headers?: Record<string, string>
       reconnect?: { enabled?: boolean; maxAttempts?: number; delayMs?: number }
+      defaultToolTimeout?: number | undefined
     }
+
+const defaultReconnect = {
+  enabled: true,
+  maxAttempts: 3,
+  delayMs: 2000,
+}
+
+const defaultRestart = {
+  enabled: true,
+  maxAttempts: 3,
+  delayMs: 2000,
+}
+
+const defaultToolTimeout = 60 * 1000
 
 export type McpClientOpts = { description?: string; version?: string } & McpTransport
 
@@ -140,6 +157,34 @@ export class McpManager {
       return { tools: [], client: null }
     }
 
+    let mcpServers: Record<string, McpClientOpts> = {}
+    for (const [name, opts] of Object.entries(this.mcps)) {
+      if (opts.type === 'stdio') {
+        if (opts.args[0] === '@modelcontextprotocol/server-filesystem') {
+          logger.warn(
+            `MCP server "${name}" is configured to use the built-in filesystem server, which is not allowed. Skipping this MCP.`,
+          )
+          continue
+        }
+        mcpServers[name] = {
+          ...opts,
+          restart: { ...defaultRestart, ...(opts.restart || {}) },
+          defaultToolTimeout: opts.defaultToolTimeout ?? defaultToolTimeout,
+        }
+        continue
+      } else if (opts.type === 'http' || opts.type === 'sse') {
+        mcpServers[name] = {
+          ...opts,
+          reconnect: { ...defaultReconnect, ...(opts.reconnect || {}) },
+          defaultToolTimeout: opts.defaultToolTimeout ?? defaultToolTimeout,
+        }
+      } else {
+        logger.warn(
+          `MCP server "${name}" has unsupported type "${opts.type}". Supported types are stdio, http, and sse. Skipping this MCP.`,
+        )
+      }
+    }
+
     const client = new MultiServerMCPClient({
       throwOnLoadError: false,
       prefixToolNameWithServerName: true,
@@ -148,7 +193,7 @@ export class McpManager {
       onConnectionError({ serverName, error }, args) {
         logger.error({ serverName, error, args }, '[mcp] Connection error with MCP server')
       },
-      mcpServers: this.mcps,
+      mcpServers: mcpServers,
     })
 
     const tools = await client.getTools()
