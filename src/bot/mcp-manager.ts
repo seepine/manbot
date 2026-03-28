@@ -1,9 +1,10 @@
 import { join } from 'node:path'
 import { mkdirSync } from 'node:fs'
-import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools'
+import { type StructuredToolInterface } from '@langchain/core/tools'
 import { z } from 'zod'
 import { logger } from '../log.ts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import { DynamicStructuredTool } from 'langchain'
 
 /** MCP 工具加载结果 */
 export interface McpToolsResult {
@@ -38,7 +39,6 @@ export type McpClientOpts = { description?: string; version?: string } & McpTran
 
 // Schema for stdio transport
 const stdioSchema = z.object({
-  name: z.string().describe('MCP server name'),
   type: z.literal('stdio'),
   command: z.string().describe('启动命令，如 bunx、npx、uvx、docker'),
   args: z.array(z.string()).describe('命令参数列表'),
@@ -47,7 +47,6 @@ const stdioSchema = z.object({
 
 // Schema for http transport
 const httpSchema = z.object({
-  name: z.string().describe('MCP server name'),
   type: z.literal('http'),
   url: z.url().describe('HTTP 服务 URL'),
   headers: z.record(z.string(), z.string()).optional().describe('请求头'),
@@ -55,14 +54,18 @@ const httpSchema = z.object({
 
 // Schema for sse transport
 const sseSchema = z.object({
-  name: z.string().describe('MCP server name'),
   type: z.literal('sse'),
   url: z.string().describe('SSE 服务 URL'),
 })
 
 // Combined add_mcp schema - transforms to McpClientOpts (name is the key, not part of opts)
 export const addMcpSchema = z
-  .union([stdioSchema, httpSchema, sseSchema])
+  .object({
+    name: z.string().describe('MCP server name'),
+    mcpInfo: z
+      .union([stdioSchema, httpSchema, sseSchema])
+      .describe('MCP connection configuration, supports stdio, http, and sse types'),
+  })
   .describe('MCP 连接配置，支持 stdio、http 和 sse 三种类型')
 
 export const delMcpSchema = z.object({
@@ -133,11 +136,11 @@ export class McpManager {
     if (Object.keys(this.mcps).length === 0) {
       return { tools: [], client: null }
     }
+
     const client = new MultiServerMCPClient({
       throwOnLoadError: false,
       prefixToolNameWithServerName: true,
       useStandardContentBlocks: true,
-      onConnectionError: 'ignore',
       mcpServers: this.mcps,
     })
 
@@ -149,7 +152,7 @@ export class McpManager {
     return { tools: tools as StructuredToolInterface[], client }
   }
 
-  getManageTools(): DynamicStructuredTool[] {
+  getManageTools() {
     const self = this
     return [
       new DynamicStructuredTool({
@@ -157,14 +160,32 @@ export class McpManager {
         description:
           'Add an MCP server configuration. Requires name and type (stdio or http or sse).',
         schema: addMcpSchema,
-        func: async (args) => {
-          const parsed = addMcpSchema.safeParse(args)
-          if (!parsed.success) {
-            logger.warn({ args, error: parsed.error }, '[mcp] Failed to parse addMcp arguments')
-            return `Invalid MCP configuration: ${parsed.error.message}, the JSON schema is: \n\n${JSON.stringify(addMcpSchema.toJSONSchema(), null, 2)}`
+        func: async ({ name, mcpInfo }) => {
+          let error = ''
+          if (mcpInfo.type === 'stdio') {
+            const res = stdioSchema.safeParse(mcpInfo)
+            if (!res.success) {
+              error = `Invalid stdio MCP configuration: ${res.error.message}\n\nstdio mcpInfo JSONSchema: \n\n${JSON.stringify(stdioSchema.toJSONSchema(), null, 2)}`
+            }
+          } else if (mcpInfo.type === 'http') {
+            const res = httpSchema.safeParse(mcpInfo)
+            if (!res.success) {
+              error = `Invalid http MCP configuration: ${res.error.message}\n\nhttp mcpInfo JSONSchema: \n\n${JSON.stringify(httpSchema.toJSONSchema(), null, 2)}`
+            }
+          } else if (mcpInfo.type === 'sse') {
+            const res = sseSchema.safeParse(mcpInfo)
+            if (!res.success) {
+              error = `Invalid sse MCP configuration: ${res.error.message}\n\nsse mcpInfo JSONSchema: \n\n${JSON.stringify(sseSchema.toJSONSchema(), null, 2)}`
+            }
+          } else {
+            error =
+              'Unsupported MCP type. Supported types are stdio, http, and sse.\nLike :\n{"name": "my-mcp", "mcpInfo": {"type": "stdio", "command": "bunx", "args": ["my-mcp-server"]}}'
           }
-          await self.addMcp(parsed.data.name, parsed.data)
-          return `MCP server "${parsed.data.name}" added successfully`
+          if (error) {
+            return error
+          }
+          await self.addMcp(name, mcpInfo)
+          return `MCP server "${name}" added successfully`
         },
       }),
       new DynamicStructuredTool({
