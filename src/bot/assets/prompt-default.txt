@@ -24,6 +24,8 @@ Use `mcp-manager` tool to add or del a mcp.
 ### Skills
 
 All skills are stored in the `.agents/skills` directory.
+Use `skills__install_helper` tool to get how-to-install-skill docs.
+Use `skills__how_to_create_skill` tool to get how-to-create-skill docs.
 
 ### Tasks
 
