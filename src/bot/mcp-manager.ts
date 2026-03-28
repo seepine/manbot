@@ -145,8 +145,8 @@ export class McpManager {
       prefixToolNameWithServerName: true,
       useStandardContentBlocks: true,
       additionalToolNamePrefix: 'mcp_',
-      onConnectionError({ serverName, error }) {
-        logger.error({ serverName, error }, '[mcp] Connection error with MCP server')
+      onConnectionError({ serverName, error }, args) {
+        logger.error({ serverName, error, args }, '[mcp] Connection error with MCP server')
       },
       mcpServers: this.mcps,
     })
