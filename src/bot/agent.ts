@@ -212,6 +212,20 @@ export class Agent {
             meta.senderId,
           ),
           new DynamicStructuredTool({
+            name: 'history-tool__get_history_messages',
+            description:
+              '获取对话的历史消息列表。用于让agent了解之前的对话内容，避免重复问答或上下文不连贯。返回格式为文本，包含历史消息的内容和类型。',
+            schema: z.object({
+              count: z.number().max(50).describe('需要获取的历史消息数量，默认为10').optional(),
+            }),
+            func: async ({ count = 10 }) => {
+              const memory = new FileMemory(meta.chatId, this.agentDir, 'normal')
+              const messages = await memory.read()
+              const result = messages.slice(-count).join('\n\n')
+              return result
+            },
+          }),
+          new DynamicStructuredTool({
             name: 'agent-team__get-can-send-message-agents',
             description:
               '获取所有可接收消息的 agent 列表。用于查看你有权向哪些 agent 联系或指派任务。',
@@ -271,8 +285,7 @@ export class Agent {
 
         const agent = await this.createAgent({
           additionalTools,
-          // 正常对话，需要有历史窗口
-          memory: new FileMemory(meta.chatId, this.agentDir),
+          memory: new FileMemory(meta.chatId, this.agentDir, 'slim'),
         })
 
         let isThinking = false
