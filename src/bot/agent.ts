@@ -104,6 +104,8 @@ export class Agent {
     ]
 
     const mcpManager = new McpManager(this.agentDir)
+    tools.push(...(mcpManager.getManageTools() as DynamicStructuredTool[]))
+
     const mcpTools = await mcpManager.loadMcpTools()
     if (provider['auto-tool-discovery'] && mcpTools?.tools?.length) {
       const toolRegistry = new ToolRegistry()
