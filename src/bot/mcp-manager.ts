@@ -189,7 +189,7 @@ export class McpManager {
       throwOnLoadError: false,
       prefixToolNameWithServerName: true,
       useStandardContentBlocks: true,
-      additionalToolNamePrefix: 'mcp_',
+      additionalToolNamePrefix: 'mcp',
       onConnectionError({ serverName, error }, args) {
         logger.error({ serverName, error, args }, '[mcp] Connection error with MCP server')
       },
