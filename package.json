@@ -10,7 +10,7 @@
     "build": "bun run src/build.ts",
     "tsc": "tsc --noEmit",
     "format": "prettier --write src/",
-    "release": "commit-and-tag-version && git push --follow-tags"
+    "release": "bun tsc && bun format && commit-and-tag-version && git push --follow-tags"
   },
   "dependencies": {
     "@langchain/anthropic": "^1.3.25",
