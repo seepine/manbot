@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.10](https://github.com/seepine/manbot/compare/v0.4.9...v0.4.10) (2026-03-28)
+
+
+### Features
+
+* **bot:** add management tools to agent tool registry ([29c5b97](https://github.com/seepine/manbot/commit/29c5b97a5cc82aa84179751c07526ed8306c96d3))
+
 ## [0.4.9](https://github.com/seepine/manbot/compare/v0.4.8...v0.4.9) (2026-03-28)
 
 
