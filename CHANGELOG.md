@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.17](https://github.com/seepine/manbot/compare/v0.4.16...v0.4.17) (2026-03-28)
+
+
+### Features
+
+* **mcp:** add default configuration for MCP servers ([a36b003](https://github.com/seepine/manbot/commit/a36b00321180de10c9bc68e19787534a6b6b582e))
+
 ## [0.4.16](https://github.com/seepine/manbot/compare/v0.4.15...v0.4.16) (2026-03-28)
 
 
