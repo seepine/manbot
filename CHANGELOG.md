@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.14](https://github.com/seepine/manbot/compare/v0.4.13...v0.4.14) (2026-03-28)
+
+
+### Features
+
+* **mcp:** expose add/del/list mcp tools in prompt and improve error logging ([e93db5a](https://github.com/seepine/manbot/commit/e93db5a1f3d5c5bdc509a9e896eff2584b29cab0))
+
 ## [0.4.13](https://github.com/seepine/manbot/compare/v0.4.12...v0.4.13) (2026-03-28)
 
 ## [0.4.12](https://github.com/seepine/manbot/compare/v0.4.11...v0.4.12) (2026-03-28)
