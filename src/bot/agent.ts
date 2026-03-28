@@ -229,8 +229,8 @@ export class Agent {
               message: z.string().describe('send message to agent'),
             }),
             func: async (args) => {
-              if (meta.isGroup) {
-                return `发送消息失败，请确保在群聊中并且对方也在群中`
+              if (!meta.isGroup) {
+                return `发送消息失败，请确保当前处于群聊中，并且对方也在群中`
               }
               if (!this.opts.toAgents.includes(args.agentName)) {
                 return `发送消息失败，找不到名为 ${args.agentName} 的 agent`
