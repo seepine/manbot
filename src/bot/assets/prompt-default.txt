@@ -15,7 +15,7 @@ For user inquiries, you should assess whether the available mcp or skills can ad
 
 ### MCP
 
-All mcp are stored in the `mcp.json` file.
+Use `mcp-manager` tool to add or del a mcp.
 
 ### Skills
 
