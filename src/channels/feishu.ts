@@ -166,7 +166,9 @@ export class FeishuChannel extends Channel {
   private createCard({ userMessage, atUserName }: { userMessage?: string; atUserName?: string }) {
     let summary = ''
     if (userMessage) {
-      summary = `回复${atUserName ? ` @${atUserName}` : ''}: ${userMessage}`.trim()
+      summary = `回复${atUserName ? ` @${atUserName}` : ''}: ${userMessage}`
+        .replaceAll('\n', ' ')
+        .trim()
     }
     return {
       type: 'card_json',
