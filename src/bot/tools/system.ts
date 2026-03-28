@@ -3,11 +3,6 @@ import { DynamicStructuredTool } from 'langchain'
 import { z } from 'zod'
 import systeminformation from 'systeminformation'
 import { spawn } from 'node:child_process'
-
-import HOW_TO_ADD_MCP from '../assets/how-to-add-or-del-mcp.txt' with {
-  type: 'txt',
-  embed: 'true',
-}
 import { httpProxyEnv } from '../utils/env'
 
 const systemInnerTools: DynamicStructuredTool[] = [
@@ -19,13 +14,6 @@ const systemInnerTools: DynamicStructuredTool[] = [
       const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
       return `Current date is: ${currentDate}`
     },
-  }),
-
-  new DynamicStructuredTool({
-    name: 'systemtools__how_to_add_or_delete_mcp',
-    description: 'How to add or delete a MCP.',
-    schema: z.object({}),
-    func: async () => HOW_TO_ADD_MCP,
   }),
 ]
 const getSysteminfoOutputSchema = z.object({

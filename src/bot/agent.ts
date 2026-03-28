@@ -1,11 +1,8 @@
-import { createAgent, createMiddleware, ReactAgent, DynamicStructuredTool } from 'langchain'
-import { ChatOpenAICompletions } from '@langchain/openai'
-import { ChatAnthropic } from '@langchain/anthropic'
+import { createMiddleware, DynamicStructuredTool } from 'langchain'
 import { mkdirSync } from 'node:fs'
 import { Channel, type MessageContent, type MessageMeta } from '../channels/channel.ts'
 import { createChannel } from '../channels/factory.ts'
 import type { ProviderConfig, AgentConfig, AgentProviderConfig } from '../config/types.ts'
-import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
 import { loadMemoryPrompt, loadPromptTools } from './prompt-loader.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
@@ -21,6 +18,7 @@ import { createSubAgentTools } from './tools/sub-agent.ts'
 import { FileMemory, type Memory } from '../langchain/memory.ts'
 import { createSystemTools } from './tools/system.ts'
 import type { AgentHook } from '../langchain/types.ts'
+import { McpManager, type McpToolsResult } from './mcp-manager.ts'
 
 export class Agent {
   private innerMcpTools: McpToolsResult | null = null
@@ -105,7 +103,8 @@ export class Agent {
       ...((this.innerMcpTools?.tools ?? []) as DynamicStructuredTool[]),
     ]
 
-    const mcpTools = await loadMcpTools(workspace)
+    const mcpManager = new McpManager(this.agentDir)
+    const mcpTools = await mcpManager.loadMcpTools()
     if (provider['auto-tool-discovery'] && mcpTools?.tools?.length) {
       const toolRegistry = new ToolRegistry()
       toolRegistry.register(mcpTools.tools)
