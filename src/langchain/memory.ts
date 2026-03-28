@@ -36,6 +36,9 @@ export class FileMemory extends Memory {
         return []
       }
       const file = this.getFile()
+      if (!(await file.exists())) {
+        return []
+      }
       const history: Messages = JSON.parse((await file.text()) || '[]')
       const messages = history.filter((item) => item.role === 'user' || item.role === 'assistant')
       if (this.mode === 'slim') {
