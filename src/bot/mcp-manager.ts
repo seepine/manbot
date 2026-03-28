@@ -74,11 +74,12 @@ export const delMcpSchema = z.object({
 
 export class McpManager {
   private mcps: Record<string, McpClientOpts> = {}
-  private agentDir: string
   private mcpFilePath: string
 
-  constructor(agentDir: string) {
-    this.agentDir = agentDir
+  constructor(
+    protected agentDir: string,
+    protected workspace: string,
+  ) {
     this.mcpFilePath = this.getMcpFilePath()
   }
 
@@ -98,7 +99,9 @@ export class McpManager {
     const file = Bun.file(this.mcpFilePath)
     if (!(await file.exists())) return
     try {
-      const cache: { mcpServers?: Record<string, McpClientOpts> } = (await file.json()) || {}
+      const json = await file.text()
+      const cache: { mcpServers?: Record<string, McpClientOpts> } =
+        JSON.parse(json.replaceAll('${workspaceFolder}', this.workspace)) || {}
       this.mcps = cache.mcpServers || {}
     } catch (error) {
       logger.error({ error }, '[mcp] Failed to load mcps')
@@ -141,11 +144,15 @@ export class McpManager {
       throwOnLoadError: false,
       prefixToolNameWithServerName: true,
       useStandardContentBlocks: true,
+      additionalToolNamePrefix: 'mcp_',
+      onConnectionError({ serverName, error }) {
+        logger.error({ serverName, error }, '[mcp] Connection error with MCP server')
+      },
       mcpServers: this.mcps,
     })
 
     const tools = await client.getTools()
-    logger.info(`[MCP] 已加载 ${tools.length} 个工具`)
+    logger.info(`[mcp] 已加载 ${tools.length} 个工具`)
     for (const tool of tools) {
       logger.info(`  - ${tool.name}: ${tool.description?.slice(0, 60).trim() ?? '(无描述)'}`)
     }

@@ -103,7 +103,7 @@ export class Agent {
       ...((this.innerMcpTools?.tools ?? []) as DynamicStructuredTool[]),
     ]
 
-    const mcpManager = new McpManager(this.agentDir)
+    const mcpManager = new McpManager(this.agentDir, this.workspace)
     tools.push(...(mcpManager.getManageTools() as DynamicStructuredTool[]))
 
     const mcpTools = await mcpManager.loadMcpTools()
