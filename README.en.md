@@ -12,6 +12,7 @@ Built with [Bun](https://bun.sh), [Elysia](https://elysiajs.com), and [LangChain
 
 - **MCP Support**: Leverage the Model Context Protocol (MCP) to extend capabilities via external tools.
 - **Skill Support**: Load custom skills from the workspace to enhance the bot's knowledge and abilities.
+- **Hook System**: Insert custom logic at different stages of the agent lifecycle (before creation, before invocation, before chunk, after invocation).
 - **Task Management**: Support adding, checking, and executing scheduled tasks.
 - **Flexible Configuration**: Easily configure LLM providers (OpenAI-compatible) and environment settings.
 - **Feishu Integration**: Seamlessly interact with the bot through Feishu chats.
@@ -78,6 +79,31 @@ For example, the following configuration:
   }
 }
 ```
+
+### Hook Configuration
+
+The hook system allows you to insert custom logic at different stages of the agent lifecycle. By implementing the `AgentHook` interface, you can:
+
+- `onCreateAgentBefore`: Executed before agent creation, can modify agent options
+- `onInvokeBefore`: Executed before agent invocation, can modify input messages
+- `onInvokeChunkBefore`: Executed before agent chunk processing, can modify chunk content
+- `onInvokeAfter`: Executed after agent invocation, can process output messages
+
+### Proactive Memory Organization
+
+After each conversation, Manbot automatically invokes a sub-agent to organize the dialogue content, proactively writing important information to memory files:
+
+- **Daily Notes** (`memory/YYYY-MM-DD.md`): Records important tasks, progress, issues, user feedback and other raw logs from the day
+- **Persistent Memory** (`MEMORY.md`): Distills long-term valid information such as user preferences, core decisions, technical solutions, and lessons learned
+
+Organization rules:
+
+- High-frequency information (3+ times) → Write to persistent memory
+- Information that would cause work interruption if forgotten → Write to persistent memory
+- Context valid across sessions → Write to persistent memory
+- Temporary states or one-time discoveries → Only write to daily notes
+
+> Note: Passwords, keys, and other sensitive credentials are never recorded
 
 ### Task Configuration
 
