@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.5](https://github.com/seepine/manbot/compare/v0.4.4...v0.4.5) (2026-03-28)
+
+
+### Bug Fixes
+
+* **agent:** correct inverted group chat condition ([5178e1d](https://github.com/seepine/manbot/commit/5178e1d68a56f14d5137bc295c9c3be83405df13))
+
 ## [0.4.4](https://github.com/seepine/manbot/compare/v0.4.3...v0.4.4) (2026-03-28)
 
 ## [0.4.3](https://github.com/seepine/manbot/compare/v0.4.2...v0.4.3) (2026-03-28)
