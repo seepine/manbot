@@ -13,6 +13,7 @@ export class EasyAgent {
 
   private agent: ReactAgent
   private memory?: Memory
+  private maxHistoryMessages: number
 
   constructor(opts: {
     provider: Provider
@@ -20,9 +21,11 @@ export class EasyAgent {
     systemPrompt?: string | []
     middleware?: AgentMiddleware[]
     memory?: Memory
+    maxHistoryMessages?: number
   }) {
     this.provider = opts.provider
     this.memory = opts.memory
+    this.maxHistoryMessages = opts.maxHistoryMessages || 200
     this.agent = createAgent({
       model: this.createModel(),
       systemPrompt: isArray(opts.systemPrompt) ? opts.systemPrompt.join('\n\n') : opts.systemPrompt,
@@ -129,6 +132,9 @@ export class EasyAgent {
     }
     if (!this.memory) {
       return
+    }
+    if (historyMessages.length > this.maxHistoryMessages) {
+      historyMessages.splice(0, historyMessages.length - this.maxHistoryMessages)
     }
     await this.memory.save([
       ...historyMessages,
