@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.7](https://github.com/seepine/manbot/compare/v0.4.6...v0.4.7) (2026-03-28)
+
+
+### Features
+
+* **agent:** add configurable max history messages limit ([0369ff9](https://github.com/seepine/manbot/commit/0369ff926e99521038f922d3cb0bdb0e13ddb6d1))
+* **agent:** add history retrieval tool with configurable memory modes ([18cce26](https://github.com/seepine/manbot/commit/18cce261037ca7cb2e0f6383de1499c65fb4461b))
+* **agent:** add hook system and extract memory management to sub-agent ([ef914f6](https://github.com/seepine/manbot/commit/ef914f6d429cfeca421fd8e8dfbe68997f6d7ec4))
+
 ## [0.4.6](https://github.com/seepine/manbot/compare/v0.4.5...v0.4.6) (2026-03-28)
 
 ## [0.4.5](https://github.com/seepine/manbot/compare/v0.4.4...v0.4.5) (2026-03-28)
