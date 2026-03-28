@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.9](https://github.com/seepine/manbot/compare/v0.4.8...v0.4.9) (2026-03-28)
+
+
+### Bug Fixes
+
+* update MCP storage instructions in prompt-default.txt ([286a5cd](https://github.com/seepine/manbot/commit/286a5cd56502db87e0ec1867262dd60c3f776df0))
+
 ## [0.4.8](https://github.com/seepine/manbot/compare/v0.4.7...v0.4.8) (2026-03-28)
 
 
