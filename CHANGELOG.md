@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.3](https://github.com/seepine/manbot/compare/v0.4.2...v0.4.3) (2026-03-28)
+
+
+### Features
+
+* **agent:** add system info and command execution tools ([0d507da](https://github.com/seepine/manbot/commit/0d507da8935f72c4b98a4b5e638546ad1c8f0c60))
+
 ## [0.4.2](https://github.com/seepine/manbot/compare/v0.4.1...v0.4.2) (2026-03-27)
 
 
