@@ -21,28 +21,27 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
     },
   }
   const { env } = process
-
   // 动态添加其他mcp服务
-  if (env.TERMINAL_ALLOWED === 'true') {
-    mcpServers['terminal'] = {
-      type: 'stdio',
-      command: 'bunx',
-      args: ['-y', '--bun', '@seepine/mcp-terminal'],
-      restart: defaultRestart,
-      env: {
-        ...httpProxyEnv,
-        DEFAULT_CWD: workspaceFolder,
-      },
-    }
-  } else {
-    mcpServers['curl'] = {
-      type: 'stdio',
-      command: 'bunx',
-      args: ['-y', '--bun', '@calibress/curl-mcp'],
-      restart: defaultRestart,
-      env: httpProxyEnv,
-    }
-  }
+  // if (env.TERMINAL_ALLOWED === 'true') {
+  //   mcpServers['terminal'] = {
+  //     type: 'stdio',
+  //     command: 'bunx',
+  //     args: ['-y', '--bun', '@seepine/mcp-terminal'],
+  //     restart: defaultRestart,
+  //     env: {
+  //       ...httpProxyEnv,
+  //       DEFAULT_CWD: workspaceFolder,
+  //     },
+  //   }
+  // } else {
+  //   mcpServers['curl'] = {
+  //     type: 'stdio',
+  //     command: 'bunx',
+  //     args: ['-y', '--bun', '@calibress/curl-mcp'],
+  //     restart: defaultRestart,
+  //     env: httpProxyEnv,
+  //   }
+  // }
 
   if (env.TAVILY_API_KEY) {
     const apis = env.TAVILY_API_KEY.split(',')
@@ -66,7 +65,7 @@ export const createInnerMcpTools = async (workspaceFolder: string) => {
     mcpServers,
   })
   const tools = (await client.getTools()).filter(
-    // 筛选掉，避免出错
+    // 筛选掉，避免使用文件工具读取媒体文件，应该使用专门的媒体文件工具
     (item) => item.name !== 'filesystem__read_media_file',
   )
 

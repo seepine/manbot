@@ -7,7 +7,6 @@ import { createChannel } from '../channels/factory.ts'
 import type { ProviderConfig, AgentConfig, AgentProviderConfig } from '../config/types.ts'
 import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
 import { loadPromptTools } from './prompt-loader.ts'
-import { systemInnerTools } from './tools/system.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
 import { ToolRegistry } from './tool-registry.ts'
@@ -20,6 +19,7 @@ import { TaskManager } from './task-manager.ts'
 import { EasyAgent } from '../langchain/easy-agent.ts'
 import { createSubAgentTools } from './tools/sub-agent.ts'
 import { FileMemory, type Memory } from '../langchain/memory.ts'
+import { createSystemTools } from './tools/system.ts'
 
 export class Agent {
   private innerMcpTools: McpToolsResult | null = null
@@ -97,7 +97,7 @@ export class Agent {
     ])
 
     const tools = [
-      ...systemInnerTools,
+      ...createSystemTools(workspace),
       ...createDownloadTools(workspace),
       ...createSkillsTools(workspace),
       ...((this.innerMcpTools?.tools ?? []) as DynamicStructuredTool[]),
