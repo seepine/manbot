@@ -7,6 +7,7 @@ import IDENTITY from './assets/init/IDENTITY.txt' with { type: 'txt', embed: 'tr
 import SOUL from './assets/init/SOUL.txt' with { type: 'txt', embed: 'true' }
 import TOOLS from './assets/init/TOOLS.txt' with { type: 'txt', embed: 'true' }
 import USER from './assets/init/USER.txt' with { type: 'txt', embed: 'true' }
+import { mkdir } from 'node:fs/promises'
 
 export const loadPromptTools = async (workspace: string): Promise<string> => {
   const agentsFile = Bun.file(join(workspace, 'AGENTS.md'))
@@ -26,7 +27,9 @@ export const loadPromptTools = async (workspace: string): Promise<string> => {
 }
 
 export const loadMemoryPrompt = async (workspace: string): Promise<string> => {
-  const file = Bun.file(join(workspace, 'MEMORY_PROMPT.md'))
+  const dir = join(workspace, '.agents', 'prompts')
+  await mkdir(dir, { recursive: true })
+  const file = Bun.file(join(dir, 'memory.md'))
   if (!(await file.exists())) {
     await file.write(memoryPrompt)
   }
