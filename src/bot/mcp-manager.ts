@@ -39,7 +39,7 @@ export type McpClientOpts = { description?: string; version?: string } & McpTran
 // Schema for stdio transport
 const stdioSchema = z.object({
   name: z.string().describe('MCP server name'),
-  type: z.literal('stdio').default('stdio'),
+  type: z.literal('stdio'),
   command: z.string().describe('启动命令，如 bunx、npx、uvx、docker'),
   args: z.array(z.string()).describe('命令参数列表'),
   env: z.record(z.string(), z.string()).optional().describe('环境变量'),
@@ -160,6 +160,7 @@ export class McpManager {
         func: async (args) => {
           const parsed = addMcpSchema.safeParse(args)
           if (!parsed.success) {
+            logger.warn({ args, error: parsed.error }, '[mcp] Failed to parse addMcp arguments')
             return `Invalid MCP configuration: ${parsed.error.message}, the JSON schema is: \n\n${JSON.stringify(addMcpSchema.toJSONSchema(), null, 2)}`
           }
           await self.addMcp(parsed.data.name, parsed.data)
