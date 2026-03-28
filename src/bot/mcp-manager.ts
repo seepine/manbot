@@ -38,6 +38,7 @@ export type McpClientOpts = { description?: string; version?: string } & McpTran
 
 // Schema for stdio transport
 const stdioSchema = z.object({
+  name: z.string().describe('MCP server name'),
   type: z.literal('stdio').default('stdio'),
   command: z.string().describe('启动命令，如 bunx、npx、uvx、docker'),
   args: z.array(z.string()).describe('命令参数列表'),
@@ -46,6 +47,7 @@ const stdioSchema = z.object({
 
 // Schema for http transport
 const httpSchema = z.object({
+  name: z.string().describe('MCP server name'),
   type: z.literal('http'),
   url: z.url().describe('HTTP 服务 URL'),
   headers: z.record(z.string(), z.string()).optional().describe('请求头'),
@@ -53,56 +55,15 @@ const httpSchema = z.object({
 
 // Schema for sse transport
 const sseSchema = z.object({
+  name: z.string().describe('MCP server name'),
   type: z.literal('sse'),
   url: z.string().describe('SSE 服务 URL'),
 })
 
 // Combined add_mcp schema - transforms to McpClientOpts (name is the key, not part of opts)
 export const addMcpSchema = z
-  .object({
-    name: z.string().describe('MCP 服务名称，唯一标识'),
-    description: z.string().optional().describe('服务说明'),
-    version: z.string().optional().describe('服务版本'),
-    stdio: stdioSchema.omit({ type: true }).optional(),
-    http: httpSchema.omit({ type: true }).optional(),
-    sse: sseSchema.omit({ type: true }).optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.stdio) return true
-      if (data.http) return true
-      if (data.sse) return true
-      return false
-    },
-    { message: '必须提供 stdio、http 或 sse 配置之一' },
-  )
-  .transform((data) => {
-    if (data.stdio) {
-      return {
-        description: data.description,
-        version: data.version,
-        type: 'stdio' as const,
-        ...data.stdio,
-      }
-    }
-    if (data.http) {
-      return {
-        description: data.description,
-        version: data.version,
-        type: 'http' as const,
-        ...data.http,
-      }
-    }
-    if (data.sse) {
-      return {
-        description: data.description,
-        version: data.version,
-        type: 'sse' as const,
-        ...data.sse,
-      }
-    }
-    throw new Error('Invalid configuration')
-  })
+  .union([stdioSchema, httpSchema, sseSchema])
+  .describe('MCP 连接配置，支持 stdio、http 和 sse 三种类型')
 
 export const delMcpSchema = z.object({
   name: z.string().describe('要删除的 MCP 服务名称'),
@@ -144,6 +105,11 @@ export class McpManager {
   async addMcp(name: string, opts: McpClientOpts): Promise<void> {
     if (this.mcps[name]) {
       throw new Error(`MCP server "${name}" already exists`)
+    }
+    if (opts.type === 'stdio') {
+      if (opts.args[0] === '@modelcontextprotocol/server-filesystem') {
+        throw new Error('禁止添加文件系统 MCP，已内置提供，请直接使用 "filesystem" 工具前缀调用')
+      }
     }
     this.mcps[name] = opts
     await this.persistenceMcps()
@@ -188,12 +154,15 @@ export class McpManager {
       new DynamicStructuredTool({
         name: 'mcp-manager__add_mcp',
         description:
-          'Add an MCP server configuration. Requires name and transport configuration (stdio or http).',
+          'Add an MCP server configuration. Requires name and type (stdio or http or sse).',
         schema: addMcpSchema,
         func: async (args) => {
-          const parsed = addMcpSchema.parse(args)
-          await self.addMcp(args.name, parsed)
-          return `MCP server "${args.name}" added successfully`
+          const parsed = addMcpSchema.safeParse(args)
+          if (!parsed.success) {
+            return `Invalid MCP configuration: ${parsed.error.message}, the JSON schema is: \n\n${JSON.stringify(addMcpSchema.toJSONSchema(), null, 2)}`
+          }
+          await self.addMcp(parsed.data.name, parsed.data)
+          return `MCP server "${parsed.data.name}" added successfully`
         },
       }),
       new DynamicStructuredTool({
