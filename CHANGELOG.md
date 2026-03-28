@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.15](https://github.com/seepine/manbot/compare/v0.4.14...v0.4.15) (2026-03-28)
+
+
+### Features
+
+* **mcp:** add workspace variable substitution and tool name prefixing ([49b46c8](https://github.com/seepine/manbot/commit/49b46c8f164695c4134f3d5505a33e2db318ef4f))
+
 ## [0.4.14](https://github.com/seepine/manbot/compare/v0.4.13...v0.4.14) (2026-03-28)
 
 
