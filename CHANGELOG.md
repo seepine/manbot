@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.8](https://github.com/seepine/manbot/compare/v0.4.7...v0.4.8) (2026-03-28)
+
+
+### Features
+
+* **mcp:** refactor MCP management and remove deprecated files ([8d6a4ff](https://github.com/seepine/manbot/commit/8d6a4ff25855e43bd143916516497691899e62ee))
+
+
+### Bug Fixes
+
+* update memory prompt import path to correct file ([794f5b8](https://github.com/seepine/manbot/commit/794f5b8dd3982ab73cb4edc166089c9c3d3c2971))
+
 ## [0.4.7](https://github.com/seepine/manbot/compare/v0.4.6...v0.4.7) (2026-03-28)
 
 
