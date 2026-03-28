@@ -91,7 +91,7 @@ export class McpManager {
     await file.write(JSON.stringify({ mcpServers: this.mcps }, null, 2))
   }
 
-  async loadMcps(): Promise<void> {
+  private async loadMcps(): Promise<void> {
     const file = Bun.file(this.mcpFilePath)
     if (!(await file.exists())) return
     try {
@@ -102,7 +102,7 @@ export class McpManager {
     }
   }
 
-  async addMcp(name: string, opts: McpClientOpts): Promise<void> {
+  private async addMcp(name: string, opts: McpClientOpts): Promise<void> {
     if (this.mcps[name]) {
       throw new Error(`MCP server "${name}" already exists`)
     }
@@ -115,20 +115,21 @@ export class McpManager {
     await this.persistenceMcps()
   }
 
-  async delMcp(name: string): Promise<void> {
+  private async delMcp(name: string): Promise<void> {
     delete this.mcps[name]
     await this.persistenceMcps()
   }
 
-  getMcp(name: string): McpClientOpts | undefined {
+  private getMcp(name: string): McpClientOpts | undefined {
     return this.mcps[name]
   }
 
-  getAllMcps(): Record<string, McpClientOpts> {
+  private getAllMcps(): Record<string, McpClientOpts> {
     return this.mcps
   }
 
   async loadMcpTools(): Promise<McpToolsResult> {
+    await this.loadMcps()
     if (Object.keys(this.mcps).length === 0) {
       return { tools: [], client: null }
     }
