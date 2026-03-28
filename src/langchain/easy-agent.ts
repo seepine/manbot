@@ -5,33 +5,30 @@ import { createAgent, ReactAgent, type AgentMiddleware } from 'langchain'
 import { isArray, isString } from 'lodash-es'
 import type { ClientTool, ServerTool } from '@langchain/core/tools'
 import type { Memory } from './memory'
-import type { Message, MessageChunk, Messages } from './types'
+import type { AgentHook, CreateAgentOpts, Message, MessageChunk, Messages } from './types'
 
 export type Provider = Omit<ProviderConfig & AgentProviderConfig, 'name'>
 export class EasyAgent {
   private provider: Provider
-
-  private agent: ReactAgent
   private memory?: Memory
   private maxHistoryMessages: number
+  private hooks: AgentHook[]
 
-  constructor(opts: {
-    provider: Provider
-    tools?: (ClientTool | ServerTool)[]
-    systemPrompt?: string | []
-    middleware?: AgentMiddleware[]
-    memory?: Memory
-    maxHistoryMessages?: number
-  }) {
+  constructor(
+    protected opts: {
+      provider: Provider
+      tools?: (ClientTool | ServerTool)[]
+      systemPrompt?: string | []
+      middleware?: AgentMiddleware[]
+      memory?: Memory
+      maxHistoryMessages?: number
+      hooks?: AgentHook[]
+    },
+  ) {
     this.provider = opts.provider
     this.memory = opts.memory
     this.maxHistoryMessages = opts.maxHistoryMessages || 200
-    this.agent = createAgent({
-      model: this.createModel(),
-      systemPrompt: isArray(opts.systemPrompt) ? opts.systemPrompt.join('\n\n') : opts.systemPrompt,
-      tools: opts.tools,
-      middleware: opts.middleware,
-    })
+    this.hooks = opts.hooks || []
   }
 
   private createModel() {
@@ -57,6 +54,71 @@ export class EasyAgent {
     })
   }
 
+  private async *streamingInvoke(messages: Messages): AsyncGenerator<MessageChunk> {
+    const provider = this.provider
+    const opts = this.opts
+
+    let agentOpts: CreateAgentOpts = {
+      systemPrompt: isArray(opts.systemPrompt) ? opts.systemPrompt.join('\n\n') : opts.systemPrompt,
+      tools: opts.tools,
+      middleware: opts.middleware,
+    }
+    for (const hook of this.hooks) {
+      if (hook.onCreateAgentBefore !== undefined) {
+        agentOpts = await hook.onCreateAgentBefore(agentOpts)
+      }
+    }
+
+    const agent = createAgent({
+      model: this.createModel(),
+      ...agentOpts,
+    })
+    const stream = agent.streamEvents(
+      { messages: messages },
+      { version: 'v2', recursionLimit: provider['recursion-limit'] ?? 100 },
+    )
+
+    for await (const event of stream) {
+      if (event.event === 'on_chat_model_stream') {
+        const chunk = event.data?.chunk
+        const content = chunk?.content
+        if (typeof content === 'string') {
+          yield {
+            type: 'text',
+            content,
+          }
+        } else if (provider.type === 'anthropic' && Array.isArray(content)) {
+          for (const item of content) {
+            if (item.type === 'thinking') {
+              yield {
+                type: 'thinking',
+                content: item.thinking || '',
+              }
+            } else if (item.type === 'text') {
+              if (typeof item.text === 'string') {
+                yield {
+                  type: 'text',
+                  content: item.text,
+                }
+              }
+            }
+          }
+        }
+      } else if (event.event === 'on_tool_start') {
+        yield {
+          type: 'tool_start',
+          name: event.name,
+          arguments: event.data?.input ?? event.data ?? {},
+        }
+      } else if (event.event === 'on_tool_end') {
+        yield {
+          type: 'tool_end',
+          name: event.name,
+        }
+      }
+    }
+  }
+
   /**
    * 流式对话
    * @param messages 
@@ -80,66 +142,49 @@ export class EasyAgent {
       return item as Message
     })
 
-    const provider = this.provider
     const historyMessages = (await this.memory?.read()) || []
 
-    const stream = this.agent.streamEvents(
-      { messages: [...historyMessages, ...inputMessages] },
-      { version: 'v2', recursionLimit: provider['recursion-limit'] ?? 100 },
-    )
+    let realMessages = [...historyMessages, ...inputMessages]
 
-    let fullContent = ''
-    for await (const event of stream) {
-      if (event.event === 'on_chat_model_stream') {
-        const chunk = event.data?.chunk
-        const content = chunk?.content
-        if (typeof content === 'string') {
-          fullContent += content
-          yield {
-            type: 'text',
-            content,
-          }
-        } else if (provider.type === 'anthropic' && Array.isArray(content)) {
-          for (const item of content) {
-            if (item.type === 'thinking') {
-              yield {
-                type: 'thinking',
-                content: item.thinking || '',
-              }
-            } else if (item.type === 'text') {
-              if (typeof item.text === 'string') {
-                fullContent += item.text
-                yield {
-                  type: 'text',
-                  content: item.text,
-                }
-              }
-            }
-          }
-        }
-      } else if (event.event === 'on_tool_start') {
-        yield {
-          type: 'tool_start',
-          name: event.name,
-          arguments: event.data?.input ?? event.data ?? {},
-        }
-      } else if (event.event === 'on_tool_end') {
-        yield {
-          type: 'tool_end',
-          name: event.name,
-        }
+    // hook
+    for (const hook of this.hooks) {
+      if (hook.onInvokeBefore !== undefined) {
+        realMessages = await hook.onInvokeBefore(realMessages)
       }
     }
+
+    let fullContent = ''
+    for await (const chunk of this.streamingInvoke(realMessages)) {
+      if (chunk.type === 'text') {
+        fullContent += chunk.content
+      }
+      let newChunk = chunk
+      for (const hook of this.hooks) {
+        if (hook.onInvokeChunkBefore !== undefined) {
+          newChunk = await hook.onInvokeChunkBefore(newChunk)
+        }
+      }
+      yield newChunk
+    }
+
+    // hook
+    for (const hook of this.hooks) {
+      if (hook.onInvokeAfter !== undefined) {
+        fullContent = await hook.onInvokeAfter(inputMessages, fullContent, historyMessages)
+      }
+    }
+
     if (!this.memory) {
       return
     }
-    if (historyMessages.length > this.maxHistoryMessages) {
-      historyMessages.splice(0, historyMessages.length - this.maxHistoryMessages)
+
+    if (realMessages.length > this.maxHistoryMessages) {
+      realMessages.splice(0, realMessages.length - this.maxHistoryMessages)
     }
+
     await this.memory.save([
-      ...historyMessages,
       // 输入
-      ...inputMessages,
+      ...realMessages,
       // 返回
       { role: 'assistant', content: fullContent },
     ])

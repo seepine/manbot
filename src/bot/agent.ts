@@ -6,7 +6,7 @@ import { Channel, type MessageContent, type MessageMeta } from '../channels/chan
 import { createChannel } from '../channels/factory.ts'
 import type { ProviderConfig, AgentConfig, AgentProviderConfig } from '../config/types.ts'
 import { loadMcpTools, type McpToolsResult } from './mcp-loader.ts'
-import { loadPromptTools } from './prompt-loader.ts'
+import { loadMemoryPrompt, loadPromptTools } from './prompt-loader.ts'
 import { createInnerMcpTools } from './tools/mcp.ts'
 import { createDownloadTools } from './tools/download.ts'
 import { ToolRegistry } from './tool-registry.ts'
@@ -20,6 +20,7 @@ import { EasyAgent } from '../langchain/easy-agent.ts'
 import { createSubAgentTools } from './tools/sub-agent.ts'
 import { FileMemory, type Memory } from '../langchain/memory.ts'
 import { createSystemTools } from './tools/system.ts'
+import type { AgentHook } from '../langchain/types.ts'
 
 export class Agent {
   private innerMcpTools: McpToolsResult | null = null
@@ -85,6 +86,7 @@ export class Agent {
     opts: {
       additionalTools?: DynamicStructuredTool[]
       additionalSystemPrompt?: string
+      additionalHooks?: AgentHook[]
       memory?: Memory
     } = {},
   ): Promise<EasyAgent> {
@@ -136,6 +138,7 @@ export class Agent {
       tools: tools,
       systemPrompt: systemPrompt,
       memory: opts.memory,
+      hooks: opts.additionalHooks || [],
       middleware: [
         createMiddleware({
           name: 'clear_tools_state_after_agent',
@@ -282,16 +285,45 @@ export class Agent {
             },
           }),
         ]
-
+        const self = this
         const agent = await this.createAgent({
           additionalTools,
+          additionalHooks: [
+            {
+              onInvokeAfter(inputMessages, outputMessage) {
+                new Promise<void>(async (res) => {
+                  const agent = new EasyAgent({
+                    provider: self.provider,
+                    tools: [
+                      ...(self.innerMcpTools?.tools || []),
+                      ...createSystemTools(self.workspace),
+                    ],
+                    systemPrompt: await loadMemoryPrompt(self.workspace),
+                  })
+                  await agent.invokeSync(
+                    `你需要整理的内容是：\n\n## 用户输入：\n\`\`\`\n${JSON.stringify(inputMessages)}\n\`\`\`\n\n\n## 你的回答：\n\`\`\`\n${outputMessage}\n\`\`\``,
+                  )
+                  res()
+                }).then()
+                return outputMessage
+              },
+            },
+          ],
           memory: new FileMemory(meta.chatId, this.agentDir, 'slim'),
         })
 
         let isThinking = false
-        for await (const chunk of agent.invoke([
-          ...allContent.map((item) => this.messageToUserContent(item)),
-        ])) {
+        const inputMessages = []
+        for (const item of allContent.map((item) => this.messageToUserContent(item))) {
+          inputMessages.push(item)
+          inputMessages.push({
+            role: 'assistant' as const,
+            content: '已跳过（"Skipped due to queued user message."）',
+          })
+        }
+        inputMessages.pop()
+
+        for await (const chunk of agent.invoke(inputMessages)) {
           if (chunk.type === 'text') {
             if (isThinking) {
               queue.push({ type: 'thinking', content: '\n\n' })
@@ -327,7 +359,9 @@ export class Agent {
       }
     }).then()
 
-    const userMessage = allContent.map((item) => this.formatMessageContent(item)).join('\n\n') || ''
+    const userMessage = (
+      allContent.map((item) => this.formatMessageContent(item)).pop() || ''
+    ).trim()
 
     let waitCount = 1
     const chat = await this.channel.createChat(meta.chatId, userMessage)
