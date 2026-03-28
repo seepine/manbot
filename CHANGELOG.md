@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.16](https://github.com/seepine/manbot/compare/v0.4.15...v0.4.16) (2026-03-28)
+
+
+### Features
+
+* **mcp:** include args in MCP connection error logging ([dd19757](https://github.com/seepine/manbot/commit/dd19757c82876c7708ab9ab9aed08be220cdc6bf))
+
 ## [0.4.15](https://github.com/seepine/manbot/compare/v0.4.14...v0.4.15) (2026-03-28)
 
 
