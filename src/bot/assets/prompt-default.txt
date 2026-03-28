@@ -17,6 +17,10 @@ For user inquiries, you should assess whether the available mcp or skills can ad
 
 Use `mcp-manager` tool to add or del a mcp.
 
+- mcp-manager__add_mcp
+- mcp-manager__del_mcp
+- mcp-manager__list_mcp
+
 ### Skills
 
 All skills are stored in the `.agents/skills` directory.
