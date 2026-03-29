@@ -54,7 +54,10 @@ export class EasyAgent {
     })
   }
 
-  private async *streamingInvoke(messages: Messages): AsyncGenerator<MessageChunk> {
+  private async *streamingInvoke(
+    messages: Messages,
+    additionalOpts?: CreateAgentOpts,
+  ): AsyncGenerator<MessageChunk> {
     const provider = this.provider
     const opts = this.opts
 
@@ -62,6 +65,15 @@ export class EasyAgent {
       systemPrompt: isArray(opts.systemPrompt) ? opts.systemPrompt.join('\n\n') : opts.systemPrompt,
       tools: opts.tools,
       middleware: opts.middleware,
+    }
+    if (additionalOpts?.systemPrompt) {
+      agentOpts.systemPrompt += '\n\n' + additionalOpts?.systemPrompt
+    }
+    if (additionalOpts?.tools) {
+      agentOpts.tools = [...(agentOpts.tools || []), ...additionalOpts.tools]
+    }
+    if (additionalOpts?.middleware) {
+      agentOpts.middleware = [...(agentOpts.middleware || []), ...additionalOpts.middleware]
     }
     for (const hook of this.hooks) {
       if (hook.onCreateAgentBefore !== undefined) {
@@ -131,7 +143,10 @@ export class EasyAgent {
         }
    *   ```
    */
-  async *invoke(messages: Messages | Message | string): AsyncGenerator<MessageChunk> {
+  async *invoke(
+    messages: Messages | Message | string,
+    additionalOpts?: CreateAgentOpts,
+  ): AsyncGenerator<MessageChunk> {
     const inputMessages = (isArray(messages) ? messages : [messages]).map((item) => {
       if (isString(item)) {
         return {
@@ -154,7 +169,7 @@ export class EasyAgent {
     }
 
     let fullContent = ''
-    for await (const chunk of this.streamingInvoke(realMessages)) {
+    for await (const chunk of this.streamingInvoke(realMessages, additionalOpts)) {
       if (chunk.type === 'text') {
         fullContent += chunk.content
       }
@@ -200,11 +215,11 @@ export class EasyAgent {
    *  const {content, tools} = await invokeSync('今天天气如何')
    *  ```
    */
-  async invokeSync(messages: Messages | Message | string) {
+  async invokeSync(messages: Messages | Message | string, additionalOpts?: CreateAgentOpts) {
     let content = ''
     let thinking = ''
     const tools = []
-    for await (const chunk of this.invoke(messages)) {
+    for await (const chunk of this.invoke(messages, additionalOpts)) {
       if (chunk.type === 'text') {
         content += chunk.content
       } else if (chunk.type === 'thinking') {
