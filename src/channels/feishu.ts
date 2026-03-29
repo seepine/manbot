@@ -260,7 +260,7 @@ export class FeishuChannel extends Channel {
       }
       throw Error('上传文件失败')
     } catch (e: any) {
-      throw Error(JSON.stringify(e.response.data, null, 2))
+      throw Error(JSON.stringify(e?.response?.data || e?.response || e, null, 2))
     }
   }
 
