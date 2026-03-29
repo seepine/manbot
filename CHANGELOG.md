@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.20](https://github.com/seepine/manbot/compare/v0.4.19...v0.4.20) (2026-03-29)
+
+
+### Features
+
+* **feishu:** add reply-without-mention-groups config for auto-reply in specific groups ([68cd921](https://github.com/seepine/manbot/commit/68cd921a5e17709c5d49685cae4509c8ea574c11))
+* **task:** add result callback tool for task execution ([73222ed](https://github.com/seepine/manbot/commit/73222ed7edbd740dd971a77d01960a970aadebe9))
+
 ## [0.4.19](https://github.com/seepine/manbot/compare/v0.4.18...v0.4.19) (2026-03-28)
 
 ## [0.4.18](https://github.com/seepine/manbot/compare/v0.4.17...v0.4.18) (2026-03-28)
