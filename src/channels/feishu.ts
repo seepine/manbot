@@ -365,14 +365,15 @@ export class FeishuChannel extends Channel {
     logger.info({ message: data.message, sender: data.sender }, '[feishu] handle message')
     if (chat_type === 'group') {
       let isCallMe = false
-      if ((mentions || []).length > 0) {
+      let hasMention = (mentions || []).length > 0
+      // 优先判断@提及，如果有@提及但没有明确@我，则不答复
+      if (hasMention) {
         let myMentionInfo:
           | {
               name: string // manbot
               key: string // @_user_1
             }
           | undefined
-
         for (const mention of mentions || []) {
           const mentionName = mention.name || ''
           if (mentionName.toLowerCase() === (this.config['app-name'] || 'manbot').toLowerCase()) {
@@ -385,9 +386,18 @@ export class FeishuChannel extends Channel {
           isCallMe = true
         }
       }
-      if (isCallMe === false && content.includes(`@${this.config['app-name'] || 'manbot'}`)) {
-        isCallMe = true
+      // 如果无@提及
+      if (!hasMention) {
+        // 消息内容包含@应用名称，也视为@了我
+        if (content.includes(`@${this.config['app-name'] || 'manbot'}`)) {
+          isCallMe = true
+        }
+        // 如果配置了无需@也要答复的群聊列表，且当前群聊在列表中，也视为@了我
+        else if ((this.config['reply-without-mention-groups'] || []).includes(chat_id)) {
+          isCallMe = true
+        }
       }
+
       if (!isCallMe) {
         return
       }

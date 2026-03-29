@@ -34,6 +34,10 @@ export interface FeishuChannelConfig {
   'app-id': string
   'app-secret': string
   'app-name'?: string
+  /**
+   * 无需@也要答复的群聊列表，格式为 ["chat_id1", "chat_id2"]，如果不配置则默认所有群聊都需要@才会答复
+   */
+  'reply-without-mention-groups'?: string[]
 }
 
 export type ChannelConfig = FeishuChannelConfig
