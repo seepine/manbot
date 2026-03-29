@@ -45,6 +45,9 @@ agents:
       app-id: FEISHU_APP_ID
       app-secret: FEISHU_APP_SECRET
       app-name: manbot
+      reply-without-mention-groups: # 没有@任何人，则由main处理消息，避免每次在群聊中都要@机器人
+        - oc_7d67xxxxxx
+
     # 可选，声明可以向哪些 agent 发送消息
     to-agents:
       - secondary-agent
