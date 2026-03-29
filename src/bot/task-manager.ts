@@ -103,10 +103,27 @@ export class TaskManager {
     const agent = await buildAgent()
 
     const prompt = task.isReminder
-      ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，请立刻提醒我以下内容\n\n${task.content}`
-      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，请立刻执行以下内容，如果无需答复任何结果，请回复 HEARTBEAT_OK\n\n${task.content}`
+      ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个提醒任务，内容如下\n\n${task.content}，请使用 systemtool__result_callback 处理结果`
+      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}，请执行后使用 systemtool__result_callback 处理结果`
 
-    const { content } = await agent.invokeSync(prompt)
+    const tool = new DynamicStructuredTool({
+      name: 'systemtool__result_callback',
+      description:
+        '任务默认静默执行，若需要告知用户结果，请使用此工具回调结果，参数为字符串内容，内容将原样发送给用户',
+      schema: z.object({
+        needSendMessageToUser: z.boolean().describe('是否需要发送消息给用户'),
+        messageContent: z.string().describe('需要发送给用户的内容').optional(),
+      }),
+      func: async ({ needSendMessageToUser, messageContent }) => {
+        if (needSendMessageToUser && messageContent) {
+          await this.sendTaskResult(taskId, task, messageContent)
+        }
+      },
+    })
+
+    const { content } = await agent.invokeSync(prompt, {
+      tools: [tool],
+    })
     return content
   }
 
@@ -132,10 +149,7 @@ export class TaskManager {
     buildAgent: () => Promise<EasyAgent>,
   ): Promise<void> {
     try {
-      const result = await this.runAgent(taskId, task, buildAgent)
-      if (result && !result.includes('HEARTBEAT_OK')) {
-        await this.sendTaskResult(taskId, task, result)
-      }
+      await this.runAgent(taskId, task, buildAgent)
     } catch (error) {
       logger.error({ error, taskId }, '[task] Error executing task')
     } finally {
