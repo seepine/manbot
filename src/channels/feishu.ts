@@ -408,8 +408,15 @@ export class FeishuChannel extends Channel {
         return
       }
     }
-
-    const parsed: Content = JSON.parse(content)
+    let parsed: Content
+    try {
+      parsed = JSON.parse(content)
+    } catch (error) {
+      logger.error({ error }, '[feishu] 无法解析的消息内容')
+      parsed = {
+        text: `无法解析的消息内容:\n\n${content}`,
+      }
+    }
     const contentItems = (isArray(parsed) ? parsed : [parsed]).map<Promise<MessageContent[]>>(
       async (item) => {
         return this.parseContent(item, data.message.message_id)
