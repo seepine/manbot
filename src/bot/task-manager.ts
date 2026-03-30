@@ -104,12 +104,14 @@ export class TaskManager {
 
     const prompt = task.isReminder
       ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个提醒任务，内容如下\n\n${task.content}，请使用 systemtool__result_callback 处理结果`
-      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}，请执行后使用 systemtool__result_callback 处理结果`
+      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}`
 
     const tool = new DynamicStructuredTool({
-      name: 'systemtool__result_callback',
-      description:
-        '任务默认静默执行，若需要告知用户结果，请使用此工具回调结果，参数为字符串内容，内容将原样发送给用户',
+      name: 'systemtool__send_task_result_message',
+      description: `若需要告知用户结果，请使用此工具回调结果，参数为字符串内容，内容将原样发送给用户
+  args:
+    - needSendMessageToUser: 是否需要发送消息给用户
+    - messageContent: 需要发送给用户的内容`,
       schema: z.object({
         needSendMessageToUser: z.boolean().describe('是否需要发送消息给用户'),
         messageContent: z.string().describe('需要发送给用户的内容').optional(),
