@@ -325,6 +325,7 @@ export class Agent {
         inputMessages.pop()
 
         for await (const chunk of agent.invoke(inputMessages)) {
+          logger.info(chunk, '[agent] invoke chunk')
           if (chunk.type === 'text') {
             if (isThinking) {
               queue.push({ type: 'thinking', content: '\n\n' })
