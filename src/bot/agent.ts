@@ -305,7 +305,11 @@ export class Agent {
                     `你需要整理的内容是：\n\n## 用户输入：\n\`\`\`\n${JSON.stringify(inputMessages)}\n\`\`\`\n\n\n## 你的回答：\n\`\`\`\n${outputMessage}\n\`\`\``,
                   )
                   res()
-                }).then()
+                })
+                  .then()
+                  .catch((error) => {
+                    logger.error({ error }, '[agent] invoke after of memory handle error')
+                  })
                 return outputMessage
               },
             },
