@@ -4,6 +4,7 @@ import type { MessageHandler, MessageContent } from './channel.ts'
 import type { FeishuChannelConfig } from '../config/types.ts'
 import { isArray } from 'lodash-es'
 import { join, basename } from 'node:path'
+import { createReadStream } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { logger } from '../log.ts'
 /**
@@ -187,7 +188,12 @@ export class FeishuChannel extends Channel {
           elements: [
             { tag: 'markdown', content: summary ? `> ${summary}\n` : '', element_id: 'markdown_0' },
             { tag: 'markdown', content: '', element_id: 'markdown_1' },
-            { tag: 'markdown', content: '[生成中...]', element_id: 'tips' },
+            {
+              tag: 'markdown',
+              content: '<font color="grey-600">输入中...</font>',
+              element_id: 'tips',
+              text_size: 'small',
+            },
           ],
         },
       }),
@@ -241,7 +247,7 @@ export class FeishuChannel extends Channel {
           data: {
             file_type: 'stream',
             file_name: basename(filepath),
-            file: Buffer.from(await file.arrayBuffer()),
+            file: createReadStream(filepath),
           },
         })
         if (resp && resp.file_key) {
@@ -251,7 +257,7 @@ export class FeishuChannel extends Channel {
         const resp = await this.client.im.v1.image.create({
           data: {
             image_type: 'message',
-            image: Buffer.from(await file.arrayBuffer()),
+            image: createReadStream(filepath),
           },
         })
         if (resp && resp.image_key) {
