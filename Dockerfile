@@ -19,6 +19,7 @@ FROM base
 RUN useradd -u 1200 -m -d /data -s /bin/bash manbot
 USER manbot
 WORKDIR /data
+ENV NODE_ENV=production
 
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000
