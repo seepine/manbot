@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.23](https://github.com/seepine/manbot/compare/v0.4.22...v0.4.23) (2026-03-30)
+
+
+### Bug Fixes
+
+* **agent,feishu:** add error handling for message parsing and memory operations ([6cf3b5e](https://github.com/seepine/manbot/commit/6cf3b5e200efa0cfbb538be9a86a5dda052b073b))
+
 ## [0.4.22](https://github.com/seepine/manbot/compare/v0.4.21...v0.4.22) (2026-03-30)
 
 ## [0.4.21](https://github.com/seepine/manbot/compare/v0.4.20...v0.4.21) (2026-03-29)
