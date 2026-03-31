@@ -112,7 +112,14 @@ export const createSystemTools = (workspace: string) => {
       func: async ({ command, args, timeout, env }) => {
         if (command.includes('rm') || command.includes('del') || command.includes('rmdir')) {
           return {
+            isError: true,
             content: `[warning] command "${command}" is not allowed to execute, because it may be dangerous, operate file please use file tools.`,
+          }
+        }
+        if (command.includes(' ')) {
+          return {
+            isError: true,
+            content: `[warning] command "${command}" cannot contain space, please split command and args correctly.`,
           }
         }
         const func = new Promise<string>((resolve, reject) => {
