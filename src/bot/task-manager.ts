@@ -102,29 +102,37 @@ export class TaskManager {
   ): Promise<string> {
     const agent = await buildAgent()
 
-    const prompt = task.isReminder
-      ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个提醒任务，内容如下\n\n${task.content}，请使用 systemtool__result_callback 处理结果`
-      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}\n\n  重要说明：此任务内容可能需要回应，也可能不需要回应。除非明确说明需要告知任务结果，否则不应回应此任务过程和结果。`
+    // 统一的任务信息
+    const taskInfo = `任务ID: ${taskId}，触发时间: ${dayjs().format(this.dateFormat)}\n`
 
-    const tool = new DynamicStructuredTool({
-      name: 'systemtool__send_task_result_message',
-      description: `若需要告知用户结果，请使用此工具回调结果，参数为字符串内容，内容将原样发送给用户
-  args:
-    - needSendMessageToUser: 是否需要发送消息给用户
-    - messageContent: 需要发送给用户的内容`,
+    // 构建任务描述
+    const taskDescription = task.isReminder
+      ? `这是一个提醒任务，内容如下：\n\n${task.content}`
+      : `这是一个执行任务，内容如下：\n\n${task.content}`
+
+    // 构建回复指令
+    const responseInstruction = task.isReminder
+      ? `【强制要求】这是一个提醒任务，必须使用 task_result_callback 工具将提醒内容回调给用户。`
+      : `【回复判断标准】
+- 如果任务明确要求"回复"、"告知"、"通知"、"发送结果"等，则必须使用 task_result_callback 工具回调结果
+- 如果只是后台执行任务（如：查询数据、执行操作、完成任务）且没有要求告知用户结果，则不需要回调
+- 如果你无法判断是否需要回复，默认不需要回复`
+
+    const prompt = `${taskInfo}，${taskDescription}\n\n${responseInstruction}`
+
+    const callbackTool = new DynamicStructuredTool({
+      name: 'task_result_callback',
+      description: `任务结果回调工具。当任务需要向用户返回结果时使用（如：提醒完成、查询结果、操作反馈等）。若无需告知用户任何结果，则不要调用此工具。`,
       schema: z.object({
-        needSendMessageToUser: z.boolean().describe('是否需要发送消息给用户'),
-        messageContent: z.string().describe('需要发送给用户的内容').optional(),
+        result: z.string().describe('需要告知用户的结果内容，应简洁明了地表达任务执行的结果或答案'),
       }),
-      func: async ({ needSendMessageToUser, messageContent }) => {
-        if (needSendMessageToUser && messageContent) {
-          await this.sendTaskResult(taskId, task, messageContent)
-        }
+      func: async ({ result }) => {
+        await this.sendTaskResult(taskId, task, result)
       },
     })
 
     const { content } = await agent.invokeSync(prompt, {
-      tools: [tool],
+      tools: [callbackTool],
     })
     return content
   }
