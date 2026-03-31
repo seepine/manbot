@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.26](https://github.com/seepine/manbot/compare/v0.4.25...v0.4.26) (2026-03-31)
+
 ## [0.4.25](https://github.com/seepine/manbot/compare/v0.4.24...v0.4.25) (2026-03-31)
 
 
