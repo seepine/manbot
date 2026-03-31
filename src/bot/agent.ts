@@ -129,9 +129,12 @@ export class Agent {
     )
 
     // Add system prompt
-    let systemPrompt = `${prompt}\n\n${skillPrompt}`
+    const systemPrompt: string[] = prompt
+    if (skillPrompt) {
+      systemPrompt.push(skillPrompt)
+    }
     if (additionalSystemPrompt) {
-      systemPrompt += '\n\n' + additionalSystemPrompt
+      systemPrompt.push(additionalSystemPrompt)
     }
 
     return new EasyAgent({

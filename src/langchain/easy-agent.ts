@@ -1,11 +1,18 @@
 import { ChatAnthropic } from '@langchain/anthropic'
 import { ChatOpenAICompletions } from '@langchain/openai'
 import type { AgentProviderConfig, ProviderConfig } from '../config/types'
-import { createAgent, ReactAgent, type AgentMiddleware } from 'langchain'
-import { isArray, isString } from 'lodash-es'
+import { createAgent, SystemMessage, type AgentMiddleware } from 'langchain'
+import { isArray, isEmpty, isString } from 'lodash-es'
 import type { ClientTool, ServerTool } from '@langchain/core/tools'
 import type { Memory } from './memory'
-import type { AgentHook, CreateAgentOpts, Message, MessageChunk, Messages } from './types'
+import type {
+  AgentHook,
+  CreateAgentOpts,
+  CreateAgentOptsWithTrue,
+  Message,
+  MessageChunk,
+  Messages,
+} from './types'
 
 export type Provider = Omit<ProviderConfig & AgentProviderConfig, 'name'>
 export class EasyAgent {
@@ -18,7 +25,7 @@ export class EasyAgent {
     protected opts: {
       provider: Provider
       tools?: (ClientTool | ServerTool)[]
-      systemPrompt?: string | []
+      systemPrompt?: string | string[]
       middleware?: AgentMiddleware[]
       memory?: Memory
       maxHistoryMessages?: number
@@ -61,29 +68,52 @@ export class EasyAgent {
     const provider = this.provider
     const opts = this.opts
 
-    let agentOpts: CreateAgentOpts = {
-      systemPrompt: isArray(opts.systemPrompt) ? opts.systemPrompt.join('\n\n') : opts.systemPrompt,
+    let agentOpts: CreateAgentOptsWithTrue = {
+      systemPrompt: [],
       tools: opts.tools,
       middleware: opts.middleware,
     }
-    if (additionalOpts?.systemPrompt) {
-      agentOpts.systemPrompt += '\n\n' + additionalOpts?.systemPrompt
+
+    if (opts.systemPrompt !== undefined) {
+      agentOpts.systemPrompt?.push(
+        ...(isArray(opts.systemPrompt) ? opts.systemPrompt : [opts.systemPrompt]),
+      )
     }
-    if (additionalOpts?.tools) {
+    if (additionalOpts?.systemPrompt !== undefined) {
+      agentOpts.systemPrompt?.push(
+        ...(isArray(additionalOpts?.systemPrompt)
+          ? additionalOpts.systemPrompt
+          : [additionalOpts.systemPrompt]),
+      )
+    }
+    if (additionalOpts?.tools !== undefined) {
       agentOpts.tools = [...(agentOpts.tools || []), ...additionalOpts.tools]
     }
-    if (additionalOpts?.middleware) {
+    if (additionalOpts?.middleware !== undefined) {
       agentOpts.middleware = [...(agentOpts.middleware || []), ...additionalOpts.middleware]
     }
+
     for (const hook of this.hooks) {
       if (hook.onCreateAgentBefore !== undefined) {
         agentOpts = await hook.onCreateAgentBefore(agentOpts)
       }
     }
 
+    const systemPrompt = agentOpts.systemPrompt?.filter((item) => !isEmpty(item.trim())) || []
     const agent = createAgent({
-      model: this.createModel(),
       ...agentOpts,
+      model: this.createModel(),
+      systemPrompt:
+        systemPrompt.length > 0
+          ? new SystemMessage({
+              content: systemPrompt.map((item) => {
+                return {
+                  type: 'text',
+                  text: item,
+                }
+              }),
+            })
+          : undefined,
     })
     const stream = agent.streamEvents(
       { messages: messages },

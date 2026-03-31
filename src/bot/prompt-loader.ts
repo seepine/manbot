@@ -9,7 +9,7 @@ import TOOLS from './assets/init/TOOLS.txt' with { type: 'txt', embed: 'true' }
 import USER from './assets/init/USER.txt' with { type: 'txt', embed: 'true' }
 import { mkdir } from 'node:fs/promises'
 
-export const loadPromptTools = async (workspace: string): Promise<string> => {
+export const loadPromptTools = async (workspace: string): Promise<string[]> => {
   const agentsFile = Bun.file(join(workspace, 'AGENTS.md'))
   if (!(await agentsFile.exists())) {
     await agentsFile.write(AGENTS)
@@ -21,9 +21,9 @@ export const loadPromptTools = async (workspace: string): Promise<string> => {
   }
   const content = await agentsFile.text()
   if (content.trim().length > 0) {
-    return content + `\n\n` + defaultPrompt
+    return [defaultPrompt, content]
   }
-  return AGENTS + `\n\n` + defaultPrompt
+  return [defaultPrompt, content]
 }
 
 export const loadMemoryPrompt = async (workspace: string): Promise<string> => {

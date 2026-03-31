@@ -23,11 +23,16 @@ export type MessageChunk =
     }
 
 export type CreateAgentOpts = {
-  systemPrompt?: string
+  systemPrompt?: string | string[]
   tools?: (ClientTool | ServerTool)[]
   middleware?: AgentMiddleware[]
 }
 
+export type CreateAgentOptsWithTrue = {
+  systemPrompt?: string[]
+  tools?: (ClientTool | ServerTool)[]
+  middleware?: AgentMiddleware[]
+}
 /**
  * AgentHook 定义了在代理生命周期的不同阶段可以执行的钩子函数。这些钩子函数允许开发者在代理创建前、调用前、调用块前和调用后插入自定义逻辑，以修改代理选项、输入消息、块内容和输出消息等。
  * 通过实现这些钩子函数，开发者可以灵活地定制代理的行为和输出，满足不同的业务需求。
@@ -38,7 +43,9 @@ export type AgentHook = {
    * @param opts 代理选项，包括系统提示、工具和中间件等。
    * @returns 修改后的代理选项。
    */
-  onCreateAgentBefore?: (opts: CreateAgentOpts) => Promise<CreateAgentOpts> | CreateAgentOpts
+  onCreateAgentBefore?: (
+    opts: CreateAgentOptsWithTrue,
+  ) => Promise<CreateAgentOptsWithTrue> | CreateAgentOptsWithTrue
 
   /**
    * 在调用代理之前执行，可以用于修改输入消息、添加上下文等。
