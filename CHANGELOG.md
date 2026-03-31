@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.25](https://github.com/seepine/manbot/compare/v0.4.24...v0.4.25) (2026-03-31)
+
+
+### Bug Fixes
+
+* **bot:** add command validation to prevent dangerous operations ([3412e50](https://github.com/seepine/manbot/commit/3412e50304b1a20c57337b285c7b5b437fea94db))
+
 ## [0.4.24](https://github.com/seepine/manbot/compare/v0.4.23...v0.4.24) (2026-03-30)
 
 
