@@ -72,14 +72,17 @@ export const loadSkillPrompt = async (workspace: string) => {
   const skills = (await loadSkills(workspace)).filter(
     (item) => !item.meta.includes('disable-model-invocation: true'),
   )
+  if (skills.length === 0) {
+    return ''
+  }
   return (
-    `## 可用技能如下\n` +
+    `<system-reminder>\nThe following skills are available for use with the Skill tool:\n\n` +
     skills
       .map((item) => {
-        return `- name: ${item.name}\n  \`\`\`yaml\n${item.meta}\n\`\`\``
+        return `- ${item.name}\n  \`\`\`yaml\n${item.meta}\n\`\`\``
       })
-      .join('\n\n') +
-    `\n`
+      .join('\n') +
+    `\n</system-reminder>\n`
   )
 }
 

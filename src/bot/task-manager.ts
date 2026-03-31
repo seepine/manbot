@@ -104,7 +104,7 @@ export class TaskManager {
 
     const prompt = task.isReminder
       ? `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个提醒任务，内容如下\n\n${task.content}，请使用 systemtool__result_callback 处理结果`
-      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}`
+      : `任务${taskId}执行时间${dayjs().format(this.dateFormat)}到了，这是一个执行任务，内容如下\n\n${task.content}\n\n  重要说明：此任务内容可能需要回应，也可能不需要回应。除非明确说明需要告知任务结果，否则不应回应此任务过程和结果。`
 
     const tool = new DynamicStructuredTool({
       name: 'systemtool__send_task_result_message',

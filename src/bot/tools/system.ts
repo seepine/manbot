@@ -7,15 +7,16 @@ import { httpProxyEnv } from '../utils/env'
 
 const systemInnerTools: DynamicStructuredTool[] = [
   new DynamicStructuredTool({
-    name: 'systemtools__get_current_date',
-    description: 'Get the current date.',
+    name: 'systemtools__get_current_datetime',
+    description: 'Get the current datetime.',
     schema: z.object({}),
     func: async () => {
       const currentDate = dayjs().format('YYYY-MM-DD HH:mm:ss')
-      return `Current date is: ${currentDate}`
+      return `Current datetime is: ${currentDate}`
     },
   }),
 ]
+
 const getSysteminfoOutputSchema = z.object({
   osInfo: z
     .object({
