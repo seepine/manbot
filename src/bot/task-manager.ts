@@ -8,7 +8,7 @@ import dayjs from 'dayjs'
 import { sendFeishuMessage } from '../channels/feishu'
 import type { ChannelConfig } from '../config/types.ts'
 import { logger } from '../log.ts'
-import type { EasyAgent } from '../langchain/easy-agent.ts'
+import { EasyAgent, type Provider } from '../langchain/easy-agent.ts'
 
 export interface Task {
   status: 'pending' | 'ing'
@@ -95,6 +95,19 @@ export class TaskManager {
     }
   }
 
+  private async needToSendMessage(provider: Provider, userMessage: string) {
+    const agent = new EasyAgent({
+      provider: provider,
+      systemPrompt: `判断一下输入内容是否是一个静默任务，若是则回复YES，不是则回复NO.\n\n【回复判断标准】
+- 如果任务明确要求"回复"、"告知"、"通知"、"发送结果"等，则回复NO
+- 如果只是后台执行任务（如：查询数据、执行操作、完成任务）且没有要求告知用户结果，则回复YES
+- 如果你无法判断是否需要回复，默认回复NO`,
+    })
+
+    const res = await agent.invokeSync(userMessage)
+    return res.content.includes('NO')
+  }
+
   async runAgent(
     taskId: string,
     task: Task,
@@ -104,36 +117,18 @@ export class TaskManager {
 
     // 统一的任务信息
     const taskInfo = `任务ID: ${taskId}，触发时间: ${dayjs().format(this.dateFormat)}\n`
-
     // 构建任务描述
     const taskDescription = task.isReminder
       ? `这是一个提醒任务，内容如下：\n\n${task.content}`
       : `这是一个执行任务，内容如下：\n\n${task.content}`
 
-    // 构建回复指令
-    const responseInstruction = task.isReminder
-      ? `【强制要求】这是一个提醒任务，必须使用 task_result_callback 工具将提醒内容回调给用户。`
-      : `【回复判断标准】
-- 如果任务明确要求"回复"、"告知"、"通知"、"发送结果"等，则必须使用 task_result_callback 工具回调结果
-- 如果只是后台执行任务（如：查询数据、执行操作、完成任务）且没有要求告知用户结果，则不需要回调
-- 如果你无法判断是否需要回复，默认不需要回复`
+    const prompt = `${taskInfo}，${taskDescription}`
 
-    const prompt = `${taskInfo}，${taskDescription}\n\n${responseInstruction}`
+    const { content } = await agent.invokeSync(prompt)
+    if (await this.needToSendMessage(agent.getProvider(), prompt)) {
+      await this.sendTaskResult(taskId, task, content)
+    }
 
-    const callbackTool = new DynamicStructuredTool({
-      name: 'task_result_callback',
-      description: `任务结果回调工具。当任务需要向用户返回结果时使用（如：提醒完成、查询结果、操作反馈等）。若无需告知用户任何结果，则不要调用此工具。`,
-      schema: z.object({
-        result: z.string().describe('需要告知用户的结果内容，应简洁明了地表达任务执行的结果或答案'),
-      }),
-      func: async ({ result }) => {
-        await this.sendTaskResult(taskId, task, result)
-      },
-    })
-
-    const { content } = await agent.invokeSync(prompt, {
-      tools: [callbackTool],
-    })
     return content
   }
 

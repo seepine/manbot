@@ -38,6 +38,10 @@ export class EasyAgent {
     this.hooks = opts.hooks || []
   }
 
+  getProvider() {
+    return this.provider
+  }
+
   private createModel() {
     const provider = this.provider
     if (provider.type === 'anthropic') {
