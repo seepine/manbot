@@ -119,16 +119,69 @@ export class EasyAgent {
             })
           : undefined,
     })
-    const stream = agent.streamEvents(
-      { messages: messages },
-      { version: 'v2', recursionLimit: provider['recursion-limit'] ?? 100 },
-    )
 
+    const stream = agent.streamEvents({ messages: messages } as any, {
+      version: 'v2',
+      recursionLimit: provider['recursion-limit'] ?? 100,
+    })
+    let isFirst = true
+    let thinkChunk = ''
+    let isThinking = false
     for await (const event of stream) {
       if (event.event === 'on_chat_model_stream') {
         const chunk = event.data?.chunk
         const content = chunk?.content
         if (typeof content === 'string') {
+          if (isFirst) {
+            thinkChunk += content
+            const thinkChunkTrim = thinkChunk.trimStart()
+            if (thinkChunkTrim.length < 7) {
+              continue
+            }
+            isFirst = false
+            thinkChunk = ''
+            if (thinkChunkTrim.startsWith('<think>')) {
+              isThinking = true
+              yield {
+                type: 'thinking',
+                content: thinkChunkTrim.substring(7).trimStart(),
+              }
+              continue
+            } else {
+              yield {
+                type: 'text',
+                content: thinkChunkTrim,
+              }
+              continue
+            }
+          }
+          if (isThinking) {
+            thinkChunk += content
+            if (thinkChunk.length < 8) {
+              continue
+            }
+            const thinkEndIdx = thinkChunk.indexOf('</think>')
+            if (thinkEndIdx < 0) {
+              yield {
+                type: 'thinking',
+                content: thinkChunk,
+              }
+              continue
+            }
+            const thinkText = thinkChunk.substring(0, thinkEndIdx).trimEnd()
+            const contentText = thinkChunk.substring(thinkEndIdx + 9).trimStart()
+            isThinking = false
+            thinkChunk = ''
+            yield {
+              type: 'thinking',
+              content: thinkText,
+            }
+            yield {
+              type: 'text',
+              content: contentText,
+            }
+            continue
+          }
           yield {
             type: 'text',
             content,
@@ -267,6 +320,7 @@ export class EasyAgent {
     }
     return {
       content,
+      thinking,
       tools,
     }
   }
