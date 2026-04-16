@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.29](https://github.com/seepine/manbot/compare/v0.4.28...v0.4.29) (2026-04-16)
+
+
+### Features
+
+* **agent:** add thinking annotation support to response streaming ([a5dfff9](https://github.com/seepine/manbot/commit/a5dfff9c9e3035bd0074a79fa9fa2de10cccb8b7))
+
 ## [0.4.28](https://github.com/seepine/manbot/compare/v0.4.27...v0.4.28) (2026-04-02)
 
 ## [0.4.27](https://github.com/seepine/manbot/compare/v0.4.26...v0.4.27) (2026-03-31)
