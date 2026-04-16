@@ -347,13 +347,13 @@ export class Agent {
             }
             queue.push({ type: 'thinking', content: chunk.content })
           } else if (chunk.type === 'tool_start') {
-            queue.push({ type: 'tool_start', content: `\n> [调用工具: ${chunk.name}]\n` })
+            queue.push({ type: 'tool_start', content: `\n> 🔧 ${chunk.name}:\n` })
             queue.push({
               type: 'tool_start',
               content: `> ${this.stringifyToolInput(chunk.arguments)}\n\n`,
             })
           } else if (chunk.type === 'tool_end') {
-            queue.push({ type: 'tool_end', content: `\n> [工具 ${chunk.name} 返回完毕]\n\n` })
+            queue.push({ type: 'tool_end', content: `\n> 🔧 ${chunk.name}: done\n\n` })
           }
         }
       } catch (err) {
