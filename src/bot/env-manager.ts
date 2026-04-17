@@ -16,31 +16,29 @@ export class EnvManager {
     return join(dir, 'env.json')
   }
 
-  async loadEnvs(): Promise<Record<string, string>> {
-    return cache.lock(`envs_${this.agentDir}`, async () => {
-      const file = Bun.file(this.envFilePath)
-      if (!(await file.exists())) {
+  private async readEnvsk(): Promise<Record<string, string>> {
+    const file = Bun.file(this.envFilePath)
+    if (!(await file.exists())) {
+      return {}
+    }
+    try {
+      const cache = await file.json()
+      if (!cache || typeof cache !== 'object' || Array.isArray(cache)) {
         return {}
       }
-      try {
-        const cache = await file.json()
-        if (!cache || typeof cache !== 'object' || Array.isArray(cache)) {
-          return {}
-        }
-        const entries = Object.entries(cache).filter(
-          ([key, value]) => typeof key === 'string' && typeof value === 'string',
-        )
-        return Object.fromEntries(entries) as Record<string, string>
-      } catch (error) {
-        logger.error({ error }, '[env] Failed to load envs')
-        return {}
-      }
-    })
+      const entries = Object.entries(cache).filter(
+        ([key, value]) => typeof key === 'string' && typeof value === 'string',
+      )
+      return Object.fromEntries(entries) as Record<string, string>
+    } catch (error) {
+      logger.error({ error }, '[env] Failed to load envs')
+      return {}
+    }
   }
 
   async addEnv(name: string, value: string): Promise<void> {
     return cache.lock(`envs_${this.agentDir}`, async () => {
-      const envs = await this.loadEnvs()
+      const envs = await this.readEnvsk()
       envs[name] = value
       const file = Bun.file(this.envFilePath)
       logger.info(envs, '[env] Persisting envs')
@@ -50,7 +48,7 @@ export class EnvManager {
 
   async delEnv(name: string): Promise<boolean> {
     return cache.lock(`envs_${this.agentDir}`, async () => {
-      const envs = await this.loadEnvs()
+      const envs = await this.readEnvsk()
       const exists = name in envs
       if (!exists) {
         return false
@@ -65,7 +63,7 @@ export class EnvManager {
 
   async getAllEnvs(): Promise<Record<string, string>> {
     return cache.lock(`envs_${this.agentDir}`, async () => {
-      return await this.loadEnvs()
+      return this.readEnvsk()
     })
   }
 }
