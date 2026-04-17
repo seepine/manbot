@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     git \
     nano \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=ghcr.io/astral-sh/uv:0.11.7-debian /uv /uvx /usr/local/bin
+COPY --from=ghcr.io/astral-sh/uv:0.11.7 /uv /uvx /usr/local/bin
 
 FROM oven/bun:1.3-debian AS build
 WORKDIR /work
