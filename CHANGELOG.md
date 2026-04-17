@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.0](https://github.com/seepine/manbot/compare/v0.3.15...v0.5.0) (2026-04-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** config.yml structure changed from `provider:` to `providers:` map format
+
+* **config:** migrate to multi-provider architecture with named providers ([a7c3de6](https://github.com/seepine/manbot/commit/a7c3de687002ed5374bee8588776acbce6340aad))
+
+
+### Features
+
+* **agent:** add configurable max history messages limit ([6b8801a](https://github.com/seepine/manbot/commit/6b8801a02d586c91fee09303771b62b0405abe59))
+* **agent:** add history retrieval tool with configurable memory modes ([7e93b60](https://github.com/seepine/manbot/commit/7e93b607e0be38272f6594a723888a3102c73258))
+* **agent:** add hook system and extract memory management to sub-agent ([ee7a529](https://github.com/seepine/manbot/commit/ee7a52914dc47111f18e388694c57e201d828f23))
+* **agent:** add system info and command execution tools ([bc8f5df](https://github.com/seepine/manbot/commit/bc8f5dff7a988f2126e3ef789a15263aa0a2d22c))
+* **agent:** add thinking annotation support to response streaming ([2357de6](https://github.com/seepine/manbot/commit/2357de61145ba8b6b22203191af9c409969ee86a))
+* **agent:** add to-agents config for controlling inter-agent communication ([fa69961](https://github.com/seepine/manbot/commit/fa69961435209e87a32962a36a06867c65081b86))
+* **agent:** create Agent class with full logic ([fbcbda7](https://github.com/seepine/manbot/commit/fbcbda724a8c5accb5a6dba8370dca1d1e23d8da))
+* **bot:** add management tools to agent tool registry ([4e1c2f2](https://github.com/seepine/manbot/commit/4e1c2f2e2669acce52437d0ea1a2851817e55a4c))
+* **channel:** add Channel interface and factory ([6a4e761](https://github.com/seepine/manbot/commit/6a4e761fa9deb93268f42c9ac0f81675244ca0d5))
+* **config:** add config loader with env variable resolution ([e0fba3a](https://github.com/seepine/manbot/commit/e0fba3abd500ce544b66e5b35b911539da00f1aa))
+* **config:** add configuration types ([4993127](https://github.com/seepine/manbot/commit/4993127c32e9c2f897167268f56bc07572d6edb2))
+* **feishu:** add reply-without-mention-groups config for auto-reply in specific groups ([5133501](https://github.com/seepine/manbot/commit/51335018e6dadf7f274de3fbd0f6ff05c967479b))
+* **mcp:** add default configuration for MCP servers ([03f4617](https://github.com/seepine/manbot/commit/03f46177a873c510a88ba7c02a6cf315e77f8540))
+* **mcp:** add workspace variable substitution and tool name prefixing ([4e6d62e](https://github.com/seepine/manbot/commit/4e6d62ef202c1a65f42a8d9e212480abe9ceaaf2))
+* **mcp:** expose add/del/list mcp tools in prompt and improve error logging ([acf904f](https://github.com/seepine/manbot/commit/acf904f30680141d5f3f681d55c3c3ee7788072a))
+* **mcp:** include args in MCP connection error logging ([a284eee](https://github.com/seepine/manbot/commit/a284eee3dc327dd50b0cc251fee95a43392bfab6))
+* **mcp:** refactor MCP management and remove deprecated files ([eb4ccd6](https://github.com/seepine/manbot/commit/eb4ccd6598df5187259d9a4b7ba8bd5d388b492b))
+* **system:** add persistent environment variable management tools ([b7155d1](https://github.com/seepine/manbot/commit/b7155d1a279d38539ae1cba8f18d95303bf05e75))
+* **system:** update environment variable listing to return detailed JSON format ([9b13a9a](https://github.com/seepine/manbot/commit/9b13a9a86ee7c85d031089c81b2320fcc948795b))
+* **task:** add result callback tool for task execution ([b4398df](https://github.com/seepine/manbot/commit/b4398df95c3c68e54415f75daf414b2f282c2de8))
+
+
+### Bug Fixes
+
+* **agent,feishu:** add error handling for message parsing and memory operations ([e28e63d](https://github.com/seepine/manbot/commit/e28e63d7ff92fed7318d738122889534ab966113))
+* **agent:** change agent lifecycle from parallel to sequential execution ([7294d95](https://github.com/seepine/manbot/commit/7294d95e58a9e4ef52e93de8a983496ad0db2015))
+* **agent:** correct inverted group chat condition ([7d64d91](https://github.com/seepine/manbot/commit/7d64d91b4f4a216d12f2543290999ae6d9352e6a))
+* **bot:** add command validation to prevent dangerous operations ([d0a3b16](https://github.com/seepine/manbot/commit/d0a3b1634711aa57375629093c0444ff777644a8))
+* **bot:** use structured logging format for agent invoke chunks ([bb48715](https://github.com/seepine/manbot/commit/bb4871518e9be4a4f9b067223bbc0da0d222e5e8))
+* **Dockerfile:** update permissions and enhance environment variables for user setup ([3a7bec9](https://github.com/seepine/manbot/commit/3a7bec952e3fbfb5b3127554d115a59d87669bb7))
+* **feishu:** handle undefined response in error logging ([f0c1a65](https://github.com/seepine/manbot/commit/f0c1a659ec759fbdd34ca4dc6debca4a171ea0b7))
+* **feishu:** normalize newlines in message summary for card display ([b3dab1d](https://github.com/seepine/manbot/commit/b3dab1d88ef3fb5a3d942bf43f5a4e4328b3779a))
+* **memory:** handle non-existent file gracefully in FileMemory ([bf1905c](https://github.com/seepine/manbot/commit/bf1905c77d94c66205e18f624b075ca7744e710b))
+* resolve type errors and add buildAgent factory function ([6683ade](https://github.com/seepine/manbot/commit/6683adeec3ed89d2310d82b45655162cb7b8d41b))
+* update MCP storage instructions in prompt-default.txt ([070e858](https://github.com/seepine/manbot/commit/070e85872100a5270a3393fd4f8056dda1520c85))
+* update memory prompt import path to correct file ([87ac696](https://github.com/seepine/manbot/commit/87ac6963cec661016c645ae9a66efa4b178c84c5))
+
 ## [0.4.31](https://github.com/seepine/manbot/compare/v0.4.30...v0.4.31) (2026-04-17)
 
 ## [0.4.30](https://github.com/seepine/manbot/compare/v0.4.29...v0.4.30) (2026-04-17)
