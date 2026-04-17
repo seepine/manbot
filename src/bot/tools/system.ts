@@ -175,7 +175,12 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
             `exec command in this directory, must be an absolute path, default is workspace directory (${workspace})`,
           )
           .optional(),
-        timeout: z.number().describe('timeout in ms, default is 0').optional(),
+        timeout: z
+          .number()
+          .max(5 * 60 * 1000)
+          .default(15 * 1000)
+          .describe('timeout in ms, default is 15000')
+          .optional(),
         env: z.record(z.string(), z.string()).describe('env to exec').optional(),
       }),
       func: async ({ command, args, timeout, cwd, env }) => {
