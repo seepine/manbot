@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.7](https://github.com/seepine/manbot/compare/v0.5.6...v0.5.7) (2026-04-17)
+
+
+### Bug Fixes
+
+* **system:** improve timeout handling and error management for exec command ([b7e8e29](https://github.com/seepine/manbot/commit/b7e8e299a7244781d0b18c02ae7032bc7c6c70f3))
+
 ## [0.5.6](https://github.com/seepine/manbot/compare/v0.5.5...v0.5.6) (2026-04-17)
 
 
