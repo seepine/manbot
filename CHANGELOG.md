@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.11](https://github.com/seepine/manbot/compare/v0.5.10...v0.5.11) (2026-04-17)
+
+
+### Features
+
+* **system:** parse command strings with arguments using shell-quote ([2886ee2](https://github.com/seepine/manbot/commit/2886ee2a589d1a18b3904d75df0dd6ffddc6056c))
+
 ## [0.5.10](https://github.com/seepine/manbot/compare/v0.5.9...v0.5.10) (2026-04-17)
 
 ## [0.5.9](https://github.com/seepine/manbot/compare/v0.5.8...v0.5.9) (2026-04-17)
