@@ -165,7 +165,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
 
     new DynamicStructuredTool({
       name: 'systemtools__exec_command',
-      description: 'Execute a shell command.',
+      description: `Execute a shell command in the workspace directory (${workspace}).`,
       schema: z.object({
         command: z.string().describe('command to exec, like cd/pwd/ls'),
         args: z.array(z.string()).describe('args to exec').optional(),
