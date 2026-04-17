@@ -178,9 +178,9 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
         timeout: z
           .number()
           .max(5 * 60 * 1000)
+          .optional()
           .default(15 * 1000)
-          .describe('timeout in ms, default is 15000')
-          .optional(),
+          .describe('timeout in ms, default is 15000'),
         env: z.record(z.string(), z.string()).describe('env to exec').optional(),
       }),
       func: async ({ command, args, timeout, cwd, env }) => {
@@ -211,14 +211,23 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
           }
         }
         const persistedEnv = await envManager.getAllEnvs()
+        const timeoutMs = timeout
         const func = new Promise<string>((resolve, reject) => {
           const ls = spawn(command, args, {
-            timeout,
+            timeout: timeoutMs,
+            killSignal: 'SIGKILL',
             cwd: cwd || workspace,
             shell: true,
             env: { ...process.env, ...httpProxyEnv, ...persistedEnv, ...env },
           })
           let text = ''
+          let settled = false
+          const timer = setTimeout(() => {
+            if (settled) return
+            settled = true
+            ls.kill('SIGKILL')
+            reject(`${text}\n[error]: command timed out after ${timeoutMs}ms`)
+          }, timeoutMs + 1000)
           ls.stdout.on('data', (data) => {
             text += `${data}`
           })
@@ -226,9 +235,16 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
             text += `${data}`
           })
           ls.on('error', (error) => {
-            text += `[error]\n${error}`
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
+            ls.kill('SIGKILL')
+            reject(`${text}\n[error]: ${error.message}`)
           })
           ls.on('close', (code) => {
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
             if (code === 0) {
               resolve(text)
             } else {
