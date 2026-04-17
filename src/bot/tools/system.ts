@@ -2,7 +2,7 @@ import dayjs from 'dayjs'
 import { DynamicStructuredTool } from 'langchain'
 import { z } from 'zod'
 import systeminformation from 'systeminformation'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { httpProxyEnv } from '../utils/env'
 import { EnvManager } from '../env-manager.ts'
 
@@ -53,6 +53,10 @@ const getSysteminfoOutputSchema = z.object({
 
 export const createSystemTools = (workspace: string, agentDir: string) => {
   const envManager = new EnvManager(agentDir)
+
+  const hasBash =
+    spawnSync('which', ['bash'], { shell: true }).stdout.toString().trim() === '/bin/bash'
+
   return [
     ...systemInnerTools,
     new DynamicStructuredTool({
@@ -167,8 +171,8 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
       name: 'systemtools__exec_command',
       description: `Execute a shell command.`,
       schema: z.object({
-        command: z.string().describe('command to exec, cannot contain space, eg: pwd/ls'),
-        args: z.array(z.string()).describe('args to exec').optional(),
+        command: z.string().describe('command to exec, must be a single word, eg: pwd or ls'),
+        args: z.array(z.string()).optional().describe('args to exec'),
         cwd: z
           .string()
           .describe(
@@ -216,7 +220,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
             timeout: timeout,
             killSignal: 'SIGKILL',
             cwd: cwd || workspace,
-            shell: true,
+            shell: hasBash ? 'bash' : true,
             env: { ...process.env, ...httpProxyEnv, ...persistedEnv, ...env },
           })
           let text = ''
