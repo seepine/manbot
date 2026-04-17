@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.2](https://github.com/seepine/manbot/compare/v0.5.1...v0.5.2) (2026-04-17)
+
+
+### Features
+
+* **tool:** add cwd parameter to exec command ([b37a764](https://github.com/seepine/manbot/commit/b37a764cbf6ff6bb1734765cf8915335d2ed6e91))
+
+
+### Bug Fixes
+
+* **docker:** use home directory path for bun bin ([3aaa32a](https://github.com/seepine/manbot/commit/3aaa32a4e844fdad7ab458abb962aee94e3d936f))
+
 ## [0.5.1](https://github.com/seepine/manbot/compare/v0.5.0...v0.5.1) (2026-04-17)
 
 
