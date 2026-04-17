@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.12](https://github.com/seepine/manbot/compare/v0.5.11...v0.5.12) (2026-04-17)
+
+
+### Bug Fixes
+
+* **feishu:** use buffer for file and image uploads instead of stream ([12590ba](https://github.com/seepine/manbot/commit/12590baf85537a147545d789440496d7091b4003))
+
 ## [0.5.11](https://github.com/seepine/manbot/compare/v0.5.10...v0.5.11) (2026-04-17)
 
 
