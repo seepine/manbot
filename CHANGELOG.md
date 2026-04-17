@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.6](https://github.com/seepine/manbot/compare/v0.5.5...v0.5.6) (2026-04-17)
+
+
+### Features
+
+* **system:** add timeout constraints and default to exec command ([0b1ec41](https://github.com/seepine/manbot/commit/0b1ec41b9f398901141b0a26d35203671f8341f3))
+
 ## [0.5.5](https://github.com/seepine/manbot/compare/v0.5.4...v0.5.5) (2026-04-17)
 
 
