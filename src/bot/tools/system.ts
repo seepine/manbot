@@ -51,11 +51,27 @@ const getSysteminfoOutputSchema = z.object({
     .optional(),
 })
 
+let defaultShell: boolean | string = true
+
+if (process.env.DEFAULT_SHELL) {
+  defaultShell = process.env.DEFAULT_SHELL
+} else {
+  const hasShell = (shell: string) => {
+    return (
+      spawnSync('which', [shell], { shell: true }).stdout.toString().trim().length >= shell.length
+    )
+  }
+  if (hasShell('zsh')) {
+    defaultShell = 'zsh'
+  } else if (hasShell('bash')) {
+    defaultShell = 'bash'
+  } else if (hasShell('sh')) {
+    defaultShell = 'sh'
+  }
+}
+
 export const createSystemTools = (workspace: string, agentDir: string) => {
   const envManager = new EnvManager(agentDir)
-
-  const hasBash =
-    spawnSync('which', ['bash'], { shell: true }).stdout.toString().trim() === '/bin/bash'
 
   return [
     ...systemInnerTools,
@@ -220,7 +236,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
             timeout: timeout,
             killSignal: 'SIGKILL',
             cwd: cwd || workspace,
-            shell: hasBash ? 'bash' : true,
+            shell: defaultShell,
             env: { ...process.env, ...httpProxyEnv, ...persistedEnv, ...env },
           })
           let text = ''
