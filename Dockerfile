@@ -25,4 +25,4 @@ ENV BUN_INSTALL_BIN="~/.bun/bin"
 ENV PATH="$BUN_INSTALL_BIN:~/.local/bin:$PATH"
 
 COPY --from=build /work/dist/index.js /manbot.js
-ENTRYPOINT ["bun", "/manbot.js"]
+ENTRYPOINT ["/bin/bash", "-c", "bun /manbot.js"]
