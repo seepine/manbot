@@ -167,7 +167,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
       name: 'systemtools__exec_command',
       description: `Execute a shell command.`,
       schema: z.object({
-        command: z.string().describe('command to exec, like pwd/ls'),
+        command: z.string().describe('command to exec, cannot contain space, eg: pwd/ls'),
         args: z.array(z.string()).describe('args to exec').optional(),
         cwd: z
           .string()
@@ -211,10 +211,9 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
           }
         }
         const persistedEnv = await envManager.getAllEnvs()
-        const timeoutMs = timeout
         const func = new Promise<string>((resolve, reject) => {
           const ls = spawn(command, args, {
-            timeout: timeoutMs,
+            timeout: timeout,
             killSignal: 'SIGKILL',
             cwd: cwd || workspace,
             shell: true,
@@ -222,12 +221,6 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
           })
           let text = ''
           let settled = false
-          const timer = setTimeout(() => {
-            if (settled) return
-            settled = true
-            ls.kill('SIGKILL')
-            reject(`${text}\n[error]: command timed out after ${timeoutMs}ms`)
-          }, timeoutMs + 1000)
           ls.stdout.on('data', (data) => {
             text += `${data}`
           })
@@ -237,14 +230,12 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
           ls.on('error', (error) => {
             if (settled) return
             settled = true
-            clearTimeout(timer)
             ls.kill('SIGKILL')
             reject(`${text}\n[error]: ${error.message}`)
           })
           ls.on('close', (code) => {
             if (settled) return
             settled = true
-            clearTimeout(timer)
             if (code === 0) {
               resolve(text)
             } else {
