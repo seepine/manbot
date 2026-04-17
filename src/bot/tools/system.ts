@@ -165,15 +165,20 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
 
     new DynamicStructuredTool({
       name: 'systemtools__exec_command',
-      description: `Execute a shell command in the workspace directory (${workspace}).`,
+      description: `Execute a shell command.`,
       schema: z.object({
-        command: z.string().describe('command to exec, like cd/pwd/ls'),
+        command: z.string().describe('command to exec, like pwd/ls'),
         args: z.array(z.string()).describe('args to exec').optional(),
-        // cwd: z.string().describe('exec command in this directory').optional(),
+        cwd: z
+          .string()
+          .describe(
+            `exec command in this directory, must be an absolute path, default is workspace directory (${workspace})`,
+          )
+          .optional(),
         timeout: z.number().describe('timeout in ms, default is 0').optional(),
         env: z.record(z.string(), z.string()).describe('env to exec').optional(),
       }),
-      func: async ({ command, args, timeout, env }) => {
+      func: async ({ command, args, timeout, cwd, env }) => {
         if (command.includes('rm') || command.includes('del') || command.includes('rmdir')) {
           return {
             isError: true,
@@ -186,11 +191,25 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
             content: `[warning] command "${command}" cannot contain space, please split command and args correctly.`,
           }
         }
+        if (cwd) {
+          if (!cwd.startsWith('/')) {
+            return {
+              isError: true,
+              content: `[warning] cwd "${cwd}" must be an absolute path.`,
+            }
+          }
+          if (!cwd.startsWith(workspace)) {
+            return {
+              isError: true,
+              content: `[warning] cwd "${cwd}" must be under workspace directory (${workspace}).`,
+            }
+          }
+        }
         const persistedEnv = await envManager.getAllEnvs()
         const func = new Promise<string>((resolve, reject) => {
           const ls = spawn(command, args, {
             timeout,
-            cwd: workspace,
+            cwd: cwd || workspace,
             shell: true,
             env: { ...process.env, ...httpProxyEnv, ...persistedEnv, ...env },
           })
