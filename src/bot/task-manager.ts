@@ -95,17 +95,44 @@ export class TaskManager {
     }
   }
 
-  private async needToSendMessage(provider: Provider, userMessage: string) {
+  private async needToSendMessage(provider: Provider, taskContent: string) {
+    const normalized = taskContent.replace(/\s+/g, ' ').trim()
+    if (!normalized) return true
+
+    // Explicit user intent has the highest priority.
+    const forceSilentPattern =
+      /(无需|不用|不必|不要)(回复|告知|通知|反馈|汇报)|静默(执行|运行)?|仅执行|只执行|后台执行|执行即可|完成即可/i
+    if (forceSilentPattern.test(normalized)) {
+      return false
+    }
+
+    const forceNotifyPattern =
+      /(请|记得)?(回复|告知|通知|发送|反馈|汇报).{0,8}(我|结果)|告诉我|通知我|发我|提醒我|同步我|给我结果|执行完.*(说一声|通知|告知)/i
+    if (forceNotifyPattern.test(normalized)) {
+      return true
+    }
+
     const agent = new EasyAgent({
       provider: provider,
-      systemPrompt: `判断一下输入内容是否是一个静默任务，若是则回复YES，不是则回复NO.\n\n【回复判断标准】
-- 如果任务明确要求"回复"、"告知"、"通知"、"发送结果"等，则回复NO
-- 如果只是后台执行任务（如：查询数据、执行操作、完成任务）且没有要求告知用户结果，则回复YES
-- 如果你无法判断是否需要回复，默认回复NO`,
+      systemPrompt: `你是任务消息路由器。请判断“任务执行完后是否需要给用户发消息”。
+
+只允许输出一个单词：YES 或 NO。
+- YES: 需要发消息（用户明确要求回复、通知、告知、汇报、提醒、发送结果）。
+- NO: 不需要发消息（明确静默执行/仅后台执行/无需反馈）。
+- 无法判断时，输出 NO。`,
     })
 
-    const res = await agent.invokeSync(userMessage)
-    return res.content.includes('NO')
+    try {
+      const res = await agent.invokeSync(`任务内容如下，请只回答 YES 或 NO：\n\n${normalized}`)
+      const answer = res.content.toUpperCase()
+      if (/(^|\b)YES(\b|$)/.test(answer)) return true
+      if (/(^|\b)NO(\b|$)/.test(answer)) return false
+    } catch (error) {
+      logger.warn({ error }, '[task] Failed to classify whether to send message, fallback to NO')
+    }
+
+    // Conservative fallback: send message to avoid missing critical feedback.
+    return false
   }
 
   async runAgent(
@@ -125,7 +152,7 @@ export class TaskManager {
     const prompt = `${taskInfo}，${taskDescription}`
 
     const { content } = await agent.invokeSync(prompt)
-    if (await this.needToSendMessage(agent.getProvider(), prompt)) {
+    if (await this.needToSendMessage(agent.getProvider(), task.content)) {
       await this.sendTaskResult(taskId, task, content)
     }
 
