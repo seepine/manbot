@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.8](https://github.com/seepine/manbot/compare/v0.5.7...v0.5.8) (2026-04-17)
+
+
+### Bug Fixes
+
+* **system:** remove redundant timeout buffer from exec command ([95b6040](https://github.com/seepine/manbot/commit/95b6040b9992d8d1c53b40e1ca4d093e17016052))
+
 ## [0.5.7](https://github.com/seepine/manbot/compare/v0.5.6...v0.5.7) (2026-04-17)
 
 
