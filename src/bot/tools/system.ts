@@ -4,6 +4,7 @@ import { z } from 'zod'
 import systeminformation from 'systeminformation'
 import { spawn } from 'node:child_process'
 import { httpProxyEnv } from '../utils/env'
+import { EnvManager } from '../env-manager.ts'
 
 const systemInnerTools: DynamicStructuredTool[] = [
   new DynamicStructuredTool({
@@ -50,7 +51,8 @@ const getSysteminfoOutputSchema = z.object({
     .optional(),
 })
 
-export const createSystemTools = (workspace: string) => {
+export const createSystemTools = (workspace: string, agentDir: string) => {
+  const envManager = new EnvManager(agentDir)
   return [
     ...systemInnerTools,
     new DynamicStructuredTool({
@@ -100,6 +102,68 @@ export const createSystemTools = (workspace: string) => {
     }),
 
     new DynamicStructuredTool({
+      name: 'systemtools__add_env',
+      description: 'Add or update one persisted environment variable.',
+      schema: z.object({
+        name: z.string().describe('env key, like API_KEY'),
+        value: z.string().describe('env value'),
+      }),
+      func: async ({ name, value }) => {
+        if (!name.trim()) {
+          return {
+            isError: true,
+            error: 'env name cannot be empty',
+          }
+        }
+        await envManager.addEnv(name, value)
+        return {
+          isSuccess: true,
+          result: `env "${name}" saved`,
+        }
+      },
+    }),
+
+    new DynamicStructuredTool({
+      name: 'systemtools__del_env',
+      description: 'Delete one persisted environment variable.',
+      schema: z.object({
+        name: z.string().describe('env key to delete'),
+      }),
+      func: async ({ name }) => {
+        if (!name.trim()) {
+          return {
+            isError: true,
+            error: 'env name cannot be empty',
+          }
+        }
+        const ok = await envManager.delEnv(name)
+        if (!ok) {
+          return {
+            isError: true,
+            error: `env "${name}" not found`,
+          }
+        }
+        return {
+          isSuccess: true,
+          result: `env "${name}" deleted`,
+        }
+      },
+    }),
+
+    new DynamicStructuredTool({
+      name: 'systemtools__list_env',
+      description: 'List all persisted environment variable keys.',
+      schema: z.object({}),
+      func: async () => {
+        const envs = await envManager.getAllEnvs()
+        return {
+          isSuccess: true,
+          result: Object.keys(envs),
+        }
+      },
+    }),
+
+    new DynamicStructuredTool({
       name: 'systemtools__exec_command',
       description: 'Execute a shell command.',
       schema: z.object({
@@ -122,12 +186,13 @@ export const createSystemTools = (workspace: string) => {
             content: `[warning] command "${command}" cannot contain space, please split command and args correctly.`,
           }
         }
+        const persistedEnv = await envManager.getAllEnvs()
         const func = new Promise<string>((resolve, reject) => {
           const ls = spawn(command, args, {
             timeout,
             cwd: workspace,
             shell: true,
-            env: { ...process.env, ...httpProxyEnv, ...env },
+            env: { ...process.env, ...httpProxyEnv, ...persistedEnv, ...env },
           })
           let text = ''
           ls.stdout.on('data', (data) => {

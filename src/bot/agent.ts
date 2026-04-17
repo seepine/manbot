@@ -97,7 +97,7 @@ export class Agent {
     ])
 
     const tools = [
-      ...createSystemTools(workspace),
+      ...createSystemTools(workspace, this.agentDir),
       ...createDownloadTools(workspace),
       ...createSkillsTools(workspace),
       ...((this.innerMcpTools?.tools ?? []) as DynamicStructuredTool[]),
@@ -300,7 +300,7 @@ export class Agent {
                     provider: self.provider,
                     tools: [
                       ...(self.innerMcpTools?.tools || []),
-                      ...createSystemTools(self.workspace),
+                      ...createSystemTools(self.workspace, self.agentDir),
                     ],
                     systemPrompt: await loadMemoryPrompt(self.workspace),
                   })
