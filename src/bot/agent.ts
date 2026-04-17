@@ -19,6 +19,7 @@ import { FileMemory, type Memory } from '../langchain/memory.ts'
 import { createSystemTools } from './tools/system.ts'
 import type { AgentHook } from '../langchain/types.ts'
 import { McpManager, type McpToolsResult } from './mcp-manager.ts'
+import dayjs from 'dayjs'
 
 export class Agent {
   private innerMcpTools: McpToolsResult | null = null
@@ -136,6 +137,16 @@ export class Agent {
     if (additionalSystemPrompt) {
       systemPrompt.push(additionalSystemPrompt)
     }
+
+    systemPrompt.push(`<system-reminder>
+# currentDate
+Today's date is ${dayjs().format('YYYY-MM-DD HH:mm:ss')}.
+      
+# currentWorkspace
+Your current workspace directory is \`${this.workspace}\` and all its subdirectories. You can only read and write files within this directory tree. Do NOT access any files outside of this directory tree.
+
+重要说明：此上下文可能与你的任务相关，也可能不相关。除非它与你的任务高度相关，否则你不应回应此上下文。
+</system-reminder>`)
 
     return new EasyAgent({
       provider: this.provider,
