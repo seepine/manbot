@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.4.30](https://github.com/seepine/manbot/compare/v0.4.29...v0.4.30) (2026-04-17)
+
+
+### Features
+
+* **system:** add persistent environment variable management tools ([894b7b4](https://github.com/seepine/manbot/commit/894b7b45ad3225fd11663844664bb6055ad3a609))
+* **system:** update environment variable listing to return detailed JSON format ([6944c0c](https://github.com/seepine/manbot/commit/6944c0ce171f4e2cb51fdfe75867d2df4c4b1a96))
+
+
+### Bug Fixes
+
+* **Dockerfile:** update permissions and enhance environment variables for user setup ([b312c08](https://github.com/seepine/manbot/commit/b312c080d766cf3a364a81bd510c4d1f044f6464))
+
 ## [0.4.29](https://github.com/seepine/manbot/compare/v0.4.28...v0.4.29) (2026-04-16)
 
 
