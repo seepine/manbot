@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.9](https://github.com/seepine/manbot/compare/v0.5.8...v0.5.9) (2026-04-17)
+
+
+### Bug Fixes
+
+* **system:** detect and use bash shell explicitly for command execution ([637d391](https://github.com/seepine/manbot/commit/637d3911e9c00ad31108a0c0d4dfec61375d9b3b))
+
 ## [0.5.8](https://github.com/seepine/manbot/compare/v0.5.7...v0.5.8) (2026-04-17)
 
 
