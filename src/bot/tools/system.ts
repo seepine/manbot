@@ -152,13 +152,13 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
 
     new DynamicStructuredTool({
       name: 'systemtools__list_env',
-      description: 'List all persisted environment variable keys.',
+      description: 'List all persisted environment variables.',
       schema: z.object({}),
       func: async () => {
         const envs = await envManager.getAllEnvs()
         return {
           isSuccess: true,
-          result: Object.keys(envs),
+          result: JSON.stringify(envs, null, 2),
         }
       },
     }),
