@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.5](https://github.com/seepine/manbot/compare/v0.5.4...v0.5.5) (2026-04-17)
+
+
+### Features
+
+* **cache:** add caching support with Redis adapter ([be14b75](https://github.com/seepine/manbot/commit/be14b75bb23812aea53a2ccdee0be19f8f110cf7))
+
 ## [0.5.4](https://github.com/seepine/manbot/compare/v0.5.3...v0.5.4) (2026-04-17)
 
 ## [0.5.3](https://github.com/seepine/manbot/compare/v0.5.2...v0.5.3) (2026-04-17)
