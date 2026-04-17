@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.5.1](https://github.com/seepine/manbot/compare/v0.5.0...v0.5.1) (2026-04-17)
+
+
+### Features
+
+* **agent:** add current date and workspace context to system prompt ([fa636f9](https://github.com/seepine/manbot/commit/fa636f9179048484cdc70111ae1b605a2d5d3f31))
+
 ## [0.5.0](https://github.com/seepine/manbot/compare/v0.3.15...v0.5.0) (2026-04-17)
 
 
