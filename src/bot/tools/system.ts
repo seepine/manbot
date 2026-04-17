@@ -5,6 +5,7 @@ import systeminformation from 'systeminformation'
 import { spawn, spawnSync } from 'node:child_process'
 import { httpProxyEnv } from '../utils/env'
 import { EnvManager } from '../env-manager.ts'
+import { parse } from 'shell-quote'
 
 const systemInnerTools: DynamicStructuredTool[] = [
   new DynamicStructuredTool({
@@ -187,8 +188,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
       name: 'systemtools__exec_command',
       description: `Execute a shell command.`,
       schema: z.object({
-        command: z.string().describe('command to exec, must be a single word, eg: pwd or ls'),
-        args: z.array(z.string()).optional().describe('args to exec'),
+        command: z.string().describe('command to exec, eg: ls -la or echo "hello"'),
         cwd: z
           .string()
           .describe(
@@ -198,22 +198,42 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
         timeout: z
           .number()
           .max(5 * 60 * 1000)
-          .optional()
           .default(15 * 1000)
           .describe('timeout in ms, default is 15000'),
         env: z.record(z.string(), z.string()).describe('env to exec').optional(),
       }),
-      func: async ({ command, args, timeout, cwd, env }) => {
-        if (command.includes('rm') || command.includes('del') || command.includes('rmdir')) {
+      func: async ({ command, timeout, cwd, env }) => {
+        const splitParts = parse(command)
+          .map((item) => {
+            if (typeof item === 'string') {
+              return item
+            } else if ('op' in item && item.op !== 'glob') {
+              return item.op
+            } else if ('comment' in item) {
+              return item.comment
+            } else {
+              return ''
+            }
+          })
+          .filter((part) => part !== '')
+        if (splitParts.length === 0) {
           return {
             isError: true,
-            content: `[warning] command "${command}" is not allowed to execute, because it may be dangerous, operate file please use file tools.`,
+            content: '[warning] command cannot be empty.',
           }
         }
-        if (command.includes(' ')) {
+
+        const execCommand = splitParts[0]!
+        const execArgs = splitParts.slice(1)
+
+        if (
+          execCommand.includes('rm') ||
+          execCommand.includes('del') ||
+          execCommand.includes('rmdir')
+        ) {
           return {
             isError: true,
-            content: `[warning] command "${command}" cannot contain space, please split command and args correctly.`,
+            content: `[warning] command "${execCommand}" is not allowed to execute, because it may be dangerous, operate file please use file tools.`,
           }
         }
         if (cwd) {
@@ -232,7 +252,7 @@ export const createSystemTools = (workspace: string, agentDir: string) => {
         }
         const persistedEnv = await envManager.getAllEnvs()
         const func = new Promise<string>((resolve, reject) => {
-          const ls = spawn(command, args, {
+          const ls = spawn(execCommand, execArgs.length > 0 ? execArgs : undefined, {
             timeout: timeout,
             killSignal: 'SIGKILL',
             cwd: cwd || workspace,
