@@ -409,7 +409,11 @@ Your current workspace directory is \`${this.workspace}\` and all its subdirecto
           })
           .map((item) => item.content)
           .join('')
-        await chat.send({ type: 'text', content: sendMsg })
+        try {
+          await chat.send({ type: 'text', content: sendMsg })
+        } catch (e) {
+          logger.error(e, '[agent] 发送消息失败')
+        }
       }
     }
     try {

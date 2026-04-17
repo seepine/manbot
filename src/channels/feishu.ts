@@ -7,6 +7,7 @@ import { join, basename } from 'node:path'
 import { createReadStream } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { logger } from '../log.ts'
+import { File as BunFile } from 'node:buffer'
 /**
  * Send a message to a Feishu chat without needing a channel instance.
  * This is useful for background tasks that need to send results.
@@ -242,12 +243,13 @@ export class FeishuChannel extends Channel {
       throw Error(`文件不存在`)
     }
     try {
+      const buffer = Buffer.from(await file.arrayBuffer())
       if (filetype === 'file') {
         const resp = await this.client.im.v1.file.create({
           data: {
             file_type: 'stream',
             file_name: basename(filepath),
-            file: createReadStream(filepath),
+            file: buffer,
           },
         })
         if (resp && resp.file_key) {
@@ -257,7 +259,7 @@ export class FeishuChannel extends Channel {
         const resp = await this.client.im.v1.image.create({
           data: {
             image_type: 'message',
-            image: createReadStream(filepath),
+            image: buffer,
           },
         })
         if (resp && resp.image_key) {
@@ -489,6 +491,7 @@ export class FeishuChannel extends Channel {
         }
       } catch (e) {
         logger.error(e, '[feishu] 发送消息失败')
+        throw e
       }
     }
 
