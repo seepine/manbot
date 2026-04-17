@@ -20,6 +20,8 @@ RUN useradd -u 1200 -m -d /data -s /bin/bash manbot
 USER manbot
 WORKDIR /data
 ENV NODE_ENV=production
+ENV BUN_INSTALL_BIN="/data/.bun/bin"
+ENV PATH="$BUN_INSTALL_BIN:$PATH"
 
 COPY --from=build /work/dist/index.js /manbot.js
 EXPOSE 3000
