@@ -4,10 +4,9 @@ import type { MessageHandler, MessageContent } from './channel.ts'
 import type { FeishuChannelConfig } from '../config/types.ts'
 import { isArray } from 'lodash-es'
 import { join, basename } from 'node:path'
-import { createReadStream } from 'node:fs'
-import { mkdirSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { existsSync, mkdirSync } from 'node:fs'
 import { logger } from '../log.ts'
-import { File as BunFile } from 'node:buffer'
 /**
  * Send a message to a Feishu chat without needing a channel instance.
  * This is useful for background tasks that need to send results.
@@ -238,12 +237,11 @@ export class FeishuChannel extends Channel {
   }
 
   private async uploadFile(filetype: 'image' | 'file', filepath: string) {
-    const file = Bun.file(filepath)
-    if (!(await file.exists())) {
+    if (!existsSync(filepath)) {
       throw Error(`文件不存在`)
     }
     try {
-      const buffer = Buffer.from(await file.arrayBuffer())
+      const buffer = await readFile(filepath)
       if (filetype === 'file') {
         const resp = await this.client.im.v1.file.create({
           data: {
