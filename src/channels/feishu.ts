@@ -240,8 +240,8 @@ export class FeishuChannel extends Channel {
     if (!existsSync(filepath)) {
       throw Error(`文件不存在`)
     }
-    const buffer = await readFile(filepath)
     try {
+      const buffer = await readFile(filepath)
       if (filetype === 'file') {
         const resp = await this.client.im.v1.file.create({
           data: {
